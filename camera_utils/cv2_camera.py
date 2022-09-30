@@ -23,19 +23,16 @@ class CV2Camera:
 
 		# Extract left and right images from side-by-side
 		read_time = time.time()
-		left_img, right_img = numpy.split(frame, 2, axis=1)
-		left_img = cv2.cvtColor(left_img, cv2.COLOR_BGR2RGB)
-		right_img = cv2.cvtColor(right_img, cv2.COLOR_BGR2RGB)
+		# left_img, right_img = numpy.split(frame, 2, axis=1)
+		# left_img = cv2.cvtColor(left_img, cv2.COLOR_BGR2RGB)
+		# right_img = cv2.cvtColor(right_img, cv2.COLOR_BGR2RGB)
+		img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-		left_img = cv2.resize(left_img, dsize=(128, 96), interpolation=cv2.INTER_AREA)
-		right_img = cv2.resize(right_img, dsize=(128, 96), interpolation=cv2.INTER_AREA)
+		img = cv2.resize(img, dsize=(100, 100), interpolation=cv2.INTER_AREA)
 
-		dict_1 = {'array': left_img, 'shape': left_img.shape, 'type': 'rgb',
+		dict_1 = {'array': img, 'shape': img.shape, 'type': 'rgb',
 			'read_time': read_time, 'serial_number': self._serial_number + '/left'}
-		dict_2 = {'array': right_img,  'shape': right_img.shape, 'type': 'rgb',
-			'read_time': read_time, 'serial_number': self._serial_number + '/right'}
-		
-		return [dict_1, dict_2]
+		return [dict_1]
 
 	def disable_camera(self):
 		self._cap.release()

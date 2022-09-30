@@ -19,7 +19,7 @@ class RobotEnv(gym.Env):
         super().__init__()
 
         # Physics
-        self.use_desired_pose = False
+        self.use_desired_pose = True
         self.max_lin_vel = 0.1
         self.max_rot_vel = 0.5
         self.DoF = 3
@@ -36,11 +36,13 @@ class RobotEnv(gym.Env):
         self.reset_joints = np.array([0., -np.pi/4,  0, -3/4 * np.pi, 0,  np.pi/2, 0.])
 
         # Create Cameras
+        # use local cameras when running env on NUC
+        # use robot cameras when running env on workstation
         self._use_local_cameras = True
         self._use_robot_cameras = False
         
-        #if self._use_local_cameras:
-        #    self._camera_reader = MultiCameraWrapper()
+        if self._use_local_cameras:
+           self._camera_reader = MultiCameraWrapper()
 
         self.reset()
 
@@ -136,7 +138,6 @@ class RobotEnv(gym.Env):
         return self._robot.get_ee_angle()
 
     def get_images(self):
-        return []
         camera_feed = []
         if self._use_local_cameras:
             camera_feed.extend(self._camera_reader.read_cameras())

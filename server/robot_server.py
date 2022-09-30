@@ -5,7 +5,7 @@ import io
 
 app = Flask(__name__)
 
-### KILL SEREVER ###
+### KILL SERVER ###
 @app.route('/kill_server', methods=['POST'])
 def kill_robot_request():
     robot_controller.kill_server()

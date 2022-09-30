@@ -31,6 +31,9 @@ server and then to the robot
 
 Ask about update gripper function
 
+Running separate server for franka gripper is
+`` launch_gripper.py gripper=franka_hand ``
+
 Protobuf version that comes with polymetis gives error
 TypeError: bases must be types
 

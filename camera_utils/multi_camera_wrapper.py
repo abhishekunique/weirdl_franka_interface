@@ -1,24 +1,17 @@
 from camera_utils.camera_thread import CameraThread
-#from camera_utils.realsense_camera import gather_realsense_cameras
-#from camera_utils.zed_camera import gather_zed_cameras
+from camera_utils.cv2_camera import gather_cv2_cameras
 import time
 
 class MultiCameraWrapper:
 
-	def __init__(self, camera_types=['realsense', 'zed'], specific_cameras=None, use_threads=True):
+	def __init__(self, specific_cameras=None, use_threads=True):
 		self._all_cameras = []
 
 		if specific_cameras is not None:
 			self._all_cameras.extend(specific_cameras)
-
-		if 'realsense' in camera_types:
-			realsense_cameras = gather_realsense_cameras()
-			self._all_cameras.extend(realsense_cameras)
-
-		if 'zed' in camera_types:
-			zed_cameras = gather_zed_cameras()
-			self._all_cameras.extend(zed_cameras)
-
+		
+		all_cameras = gather_cv2_cameras()
+		self._all_cameras.extend(all_cameras)
 		if use_threads:
 			for i in range(len(self._all_cameras)):
 				self._all_cameras[i] = CameraThread(self._all_cameras[i])
