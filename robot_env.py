@@ -15,16 +15,15 @@ from server.robot_interface import RobotInterface
 class RobotEnv(gym.Env):
     
     def __init__(self, ip_address=None):
-        
         # Initialize Gym Environment
         super().__init__()
 
         # Physics
-        self.use_desired_pose = True
-        self.max_lin_vel = 1.0
-        self.max_rot_vel = 1.0
-        self.DoF = 6
-        self.hz = 20
+        self.use_desired_pose = False
+        self.max_lin_vel = 0.1
+        self.max_rot_vel = 0.5
+        self.DoF = 3
+        self.hz = 10
 
         # Robot Configuration
         if ip_address is None:
@@ -37,11 +36,11 @@ class RobotEnv(gym.Env):
         self.reset_joints = np.array([0., -np.pi/4,  0, -3/4 * np.pi, 0,  np.pi/2, 0.])
 
         # Create Cameras
-        self._use_local_cameras = False
-        self._use_robot_cameras = True
+        self._use_local_cameras = True
+        self._use_robot_cameras = False
         
-        if self._use_local_cameras:
-            self._camera_reader = MultiCameraWrapper()
+        #if self._use_local_cameras:
+        #    self._camera_reader = MultiCameraWrapper()
 
         self.reset()
 
@@ -51,17 +50,25 @@ class RobotEnv(gym.Env):
         # Process Action
         assert len(action) == (self.DoF + 1)
         assert (action.max() <= 1) and (action.min() >= -1)
-
+        print(f'action! {action}')
         pos_action, angle_action, gripper = self._format_action(action)
         lin_vel, rot_vel = self._limit_velocity(pos_action, angle_action)
+        print(f'lin vel {lin_vel}')
         desired_pos = self._curr_pos + lin_vel
         desired_angle = add_angles(rot_vel, self._curr_angle)
-        
+        # Desired position is current position plus
+        # the resulting velocity from current action
         self._update_robot(desired_pos, desired_angle, gripper)
 
         comp_time = time.time() - start_time
         sleep_left = max(0, (1 / self.hz) - comp_time)
         time.sleep(sleep_left)
+        obs = self.get_observation()
+
+        # set reward and done to None for now
+        reward = done = None
+        return obs, reward, done, {}
+
 
     def reset(self):
         self._robot.update_gripper(0)
@@ -99,6 +106,19 @@ class RobotEnv(gym.Env):
         return lin_vel, rot_vel
 
     def _update_robot(self, pos, angle, gripper):
+        """
+        Takes in desired position and gripper, calls update_pose which 
+        also takes desired_pos as input, and then computes a desired joint
+        position (qpos) using the DM IK solver. We then run the forward kinematics
+        on this qpos to compute the feasible position (i.e. where the robot can actually
+        reach) and we set the joints to the desired qpos and return this realisitc
+        position accordingly
+
+        NOTE: the curr_pos function will use this desired_pos, and assumes that the robot
+        has gotten close enough. However, if there is error in the forward kinematics
+        or the joints aren't quite set right, the real position will be different.
+        Thus we should not track the desired pose in get observation
+        """
         feasible_pos, feasible_angle = self._robot.update_pose(pos, angle)
         self._robot.update_gripper(gripper)
         self._desired_pose = {'position': feasible_pos, 
@@ -116,6 +136,7 @@ class RobotEnv(gym.Env):
         return self._robot.get_ee_angle()
 
     def get_images(self):
+        return []
         camera_feed = []
         if self._use_local_cameras:
             camera_feed.extend(self._camera_reader.read_cameras())

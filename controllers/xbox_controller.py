@@ -1,72 +1,87 @@
 '''
-Xbox Controller Class
-USE DETAILS: Create an instance, call get_action() to get action, and get_info() for data collection information
-QUESTIONS: If you have questions, reach out to Sasha :)
+Xbox Controller Class For Teleoperation
 '''
-
 import pygame
 import numpy as np
 
 pygame.init()
 pygame.joystick.init()
+class XboxController(object):
+	def __init__(self, DoF=6, pos_gain: float = 0.1, orien_gain: float = 15):
+		# Initialize Controller #
+		self.joystick = pygame.joystick.Joystick(0)
+		self.joystick.init()
+		
+		# Control Parameters #
+		self.DoF = DoF
+		self.pos_gain = pos_gain
+		self.orien_gain = orien_gain
+		self.threshold = 0.1
+		
+		# Save Toggle #
+		self.button_resetted = True
+		self.gripper_state = 0
 
-class XboxController:
+	def _process_toggle(self, toggle):
+		if toggle:
+			self.gripper_state = 1
+		else:
+			self.gripper_state = -1
+		# if toggle and self.button_resetted:
+		# 	self.gripper_state = not self.gripper_state
+		# 	self.button_resetted = False
+		# elif not toggle:
+		# 	self.button_resetted = True
 
-    def __init__(self, env):
-        # Initialize Controller
-        self.joystick = pygame.joystick.Joystick(0)
-        self.joystick.init()
-
-        # Control Parameters
-        self.threshold = 0.1
-        self.DoF = env._DoF
-
-        # Save Gripper
-        self.gripper_closed = False
-        self.button_resetted = True
-
-    def get_action(self):
-        pygame.event.get()
-
-        # XYZ Dimensions
-        x = - self.joystick.get_axis(1)
-        y = - self.joystick.get_axis(0)
-        z = (self.joystick.get_axis(5) - self.joystick.get_axis(2)) / 2
-
-        # Orientation Dimensions
-        yaw = self.joystick.get_axis(3)
-        pitch = -self.joystick.get_axis(4)
-        roll = self.joystick.get_button(4) - self.joystick.get_button(5)
-
-        # Process Pose Action
-        pose_action = np.array([x, y, z, roll, pitch, yaw])[:self.DoF]
-        pose_action[np.abs(pose_action) < self.threshold] = 0.
-
-        # Process Gripper Action
-        self._update_gripper_state(self.joystick.get_button(0))
-        gripper_action = [self.gripper_closed * 2 - 1]
-
-        #return np.array([x, y, z, pitch, roll, gripper])
-        return np.concatenate([pose_action, gripper_action])
-
-    def get_info(self):
-        pygame.event.get()
-        reset_episode = self.joystick.get_button(15)
-        save_episode = self.joystick.get_button(11)
-        delete_episode = self.joystick.get_button(16)
-        
-        if reset_episode:
-            self.gripper_closed = False
-            self.button_resetted = True
-
-        return {'reset_episode': reset_episode, 'save_episode': save_episode, 'delete_episode': delete_episode}
-
-    def _update_gripper_state(self, toggle_gripper):
-        if toggle_gripper and self.button_resetted:
-            self.gripper_closed = not self.gripper_closed
-            self.button_resetted = False
-
-        if not toggle_gripper:
-            self.button_resetted = True
+	def get_info(self):
+		pygame.event.get()
+		# A is 0, reserved for gripper
+		# Y is 3
+		# B is 1
+		# X is 2
+		#reset_episode = self.joystick.get_button(15)
+		
+		save_trajectory = self.joystick.get_button(1)
+		delete_trajectory = self.joystick.get_button(2)
+		
+		if save_trajectory or delete_trajectory:
+			self.gripper_state = 0
+			self.button_resetted = True
+		return {'save_trajectory': save_trajectory, 'delete_trajectory': delete_trajectory}
+	
+	def get_action(self):
+		pygame.event.get()
+		
+		# XYZ Dimensions #
+		x = self.joystick.get_axis(1)
+		y = self.joystick.get_axis(0)
+		z = (self.joystick.get_axis(5) - self.joystick.get_axis(2)) / 2
+		
+		# Orientation Dimensions #
+		yaw = self.joystick.get_axis(4)
+		pitch = self.joystick.get_axis(3)
+		roll = self.joystick.get_button(4) - self.joystick.get_button(5)
+		
+		# Process Gripper Action (A button) #
+		# Close/Open depending on whether this is pressed down
+		self._process_toggle(self.joystick.get_button(0))
+		
+		# Process Pose Action #
+		pose_action = np.array([x, y, z, yaw, pitch, roll], dtype=np.float32)[:self.DoF]
+		pose_action[np.abs(pose_action) < self.threshold] = 0.
+		
+		# Scale Accordingly #
+		# Unsure if this does anything in terms of position gain
+		pose_action[:3] * self.pos_gain
+		pose_action[3:6] * self.orien_gain
+		return np.append(pose_action, [self.gripper_state])
 
 
+# import time
+# controller = XboxController(DoF=3)
+# for i in range(100000):
+# 	a = controller.get_action()
+# 	info = controller.get_info()
+# 	time.sleep(0.1)
+# 	print('Action:', a)
+# 	print(f'info {info}')

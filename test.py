@@ -1,33 +1,20 @@
 from robot_env import RobotEnv
-from controllers.oculus_controller import VRPolicy
+from controllers.xbox_controller import XboxController
 import numpy as np
 import time
-from absl import logging
-logging.set_verbosity(logging.WARNING)
 
-# env = RobotEnv(ip_address='127.0.0.1')
+controller = XboxController(DoF=3)
+print(f'init env')
+ip_add = '172.16.0.2'
 env = RobotEnv()
-controller = VRPolicy()
+#env = RobotEnv()
 
 STEP_ENV = True
- 
+print(f'reset env')
 env.reset()
-controller.reset_state()
-
-
-# (Pdb) obs['images'][0]['array'].shape
-# (480, 640, 3)
-# (Pdb) obs['images'][1]['array'].shape
-# (480, 640, 3)
-# (Pdb) import sys
-# (Pdb) sys.getsizeof(obs)
-
-import pdb; pdb.set_trace()
 
 max_steps = 10000
 for i in range(max_steps):
 	obs = env.get_state()
-	a = controller.get_action(obs)
-	if STEP_ENV: env.step(a)
-	else: time.sleep(0.2)
-	#print(np.round(a, 3))
+	action = controller.get_action()
+	env.step(action)

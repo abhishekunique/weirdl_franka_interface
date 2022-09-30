@@ -15,15 +15,16 @@ import os
 
 
 class FrankaRobot:
-    def __init__(self, control_hz=20):
+    def __init__(self, control_hz=20, ip_addr=None):
         #self.launch_robot()
-
-        self._robot = RobotInterface(ip_address="localhost")
-        self._gripper = GripperInterface(ip_address="localhost")
+        self.ip_addr = "localhost" if ip_addr is None else ip_addr
+        self._robot = RobotInterface(ip_address=self.ip_addr, enforce_version=False)
+        #self._gripper = GripperInterface(ip_address=self.ip_addr)
         self._ik_solver = RobotIKSolver(self._robot, control_hz=control_hz)
-        self._max_gripper_width = self._gripper.get_state().max_width
+        #self._max_gripper_width = self._gripper.get_state().max_width
 
     def launch_robot(self):
+        # DO NOT RUN THIS WIP
         self._robot_process = run_terminal_command('bash ' + os.getcwd() + '/franka/launch_robot.sh')
         self._gripper_process = run_terminal_command('bash ' + os.getcwd() + '/franka/launch_gripper.sh')
         time.sleep(5)
@@ -55,6 +56,8 @@ class FrankaRobot:
         self._robot.move_to_joint_positions(joints)
 
     def update_gripper(self, close_percentage):
+        # why does this only got to 0.05?
+        return
         desired_gripper = np.clip(1 - close_percentage, 0.05, 1)
         self._gripper.goto(width=self._max_gripper_width * desired_gripper, speed=0.1, force=0.1)
 
@@ -65,6 +68,7 @@ class FrankaRobot:
         return self._robot.get_joint_velocities().numpy()
 
     def get_gripper_state(self):
+        return np.array([0,0])
         width_init = self._gripper.get_state().width / self._max_gripper_width
         time_1 = time.time()
         
