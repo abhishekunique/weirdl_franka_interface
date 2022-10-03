@@ -18,7 +18,7 @@ class FrankaRobot:
     def __init__(self, control_hz=20, ip_addr=None):
         #self.launch_robot()
         self.ip_addr = "localhost" if ip_addr is None else ip_addr
-        self._robot = RobotInterface(ip_address=self.ip_addr, enforce_version=False)
+        self._robot = RobotInterface(ip_address="localhost")
         #self._gripper = GripperInterface(ip_address=self.ip_addr)
         self._ik_solver = RobotIKSolver(self._robot, control_hz=control_hz)
         #self._max_gripper_width = self._gripper.get_state().max_width

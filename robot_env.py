@@ -14,7 +14,7 @@ from server.robot_interface import RobotInterface
 
 class RobotEnv(gym.Env):
     
-    def __init__(self, ip_address=None):
+    def __init__(self, ip_address=None, path_length=100):
         # Initialize Gym Environment
         super().__init__()
 
@@ -24,6 +24,14 @@ class RobotEnv(gym.Env):
         self.max_rot_vel = 0.5
         self.DoF = 3
         self.hz = 10
+
+        self.epcount = 0
+        self.max_path_length = path_length
+        self._max_episode_steps = self.max_path_length
+        # default reset position
+        self.resetpos = np.array([0.5, 0, 0.15, # x y z (position)
+                                  0.0, # gripper_width
+                                  1.0, 0.0, 0.0, 0.0]) # quat0, quat1, quat2, quat3 (orientation)
 
         # Robot Configuration
         if ip_address is None:
@@ -121,6 +129,8 @@ class RobotEnv(gym.Env):
         or the joints aren't quite set right, the real position will be different.
         Thus we should not track the desired pose in get observation
         """
+        # clip here
+        
         feasible_pos, feasible_angle = self._robot.update_pose(pos, angle)
         self._robot.update_gripper(gripper)
         self._desired_pose = {'position': feasible_pos, 
