@@ -1,0 +1,8 @@
+*.txt
+*.npy
+*.png 
+*.jpeg 
+*.jpg
+*.gif
+*.npz
+*.pyc

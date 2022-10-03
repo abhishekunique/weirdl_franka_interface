@@ -1,6 +1,7 @@
 from camera_utils.camera_thread import CameraThread
-from camera_utils.cv2_camera import gather_cv2_cameras
+from camera_utils.cv2_camera import gather_cv2_cameras, CV2Camera
 import time
+import cv2
 
 class MultiCameraWrapper:
 
@@ -10,8 +11,12 @@ class MultiCameraWrapper:
 		if specific_cameras is not None:
 			self._all_cameras.extend(specific_cameras)
 		
-		all_cameras = gather_cv2_cameras()
-		self._all_cameras.extend(all_cameras)
+		# Hard Code indices to separate wrist
+		# from 3P camera
+		cam_fp = CV2Camera(cv2.VideoCapture(0))
+		cam_tp = CV2Camera(cv2.VideoCapture(2))
+
+		self._all_cameras.extend([cam_fp, cam_tp])
 		if use_threads:
 			for i in range(len(self._all_cameras)):
 				self._all_cameras[i] = CameraThread(self._all_cameras[i])
@@ -21,6 +26,7 @@ class MultiCameraWrapper:
 		all_frames = []
 		for camera in self._all_cameras:
 			curr_feed = camera.read_camera()
+			# ask sasha about this
 			# while curr_feed is None:
 			# 	curr_feed = camera.read_camera()
 			if curr_feed is not None:

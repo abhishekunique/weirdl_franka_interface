@@ -21,11 +21,7 @@ class CV2Camera:
 		retval, frame = self._cap.read()
 		if not retval: return None
 
-		# Extract left and right images from side-by-side
 		read_time = time.time()
-		# left_img, right_img = numpy.split(frame, 2, axis=1)
-		# left_img = cv2.cvtColor(left_img, cv2.COLOR_BGR2RGB)
-		# right_img = cv2.cvtColor(right_img, cv2.COLOR_BGR2RGB)
 		img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
 		img = cv2.resize(img, dsize=(100, 100), interpolation=cv2.INTER_AREA)
