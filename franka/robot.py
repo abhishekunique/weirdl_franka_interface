@@ -19,9 +19,10 @@ class FrankaRobot:
         #self.launch_robot()
         self.ip_addr = "localhost" if ip_addr is None else ip_addr
         self._robot = RobotInterface(ip_address="localhost")
-        #self._gripper = GripperInterface(ip_address=self.ip_addr)
+        self._gripper = GripperInterface(ip_address="localhost")
         self._ik_solver = RobotIKSolver(self._robot, control_hz=control_hz)
-        #self._max_gripper_width = self._gripper.get_state().max_width
+        # this is returning zero
+        self._max_gripper_width = 0.085
 
     def launch_robot(self):
         # DO NOT RUN THIS WIP
@@ -53,11 +54,18 @@ class FrankaRobot:
         joints = torch.Tensor(joints)
         if self._robot.is_running_policy():
             self._robot.terminate_current_policy()
+            time.sleep(2)
         self._robot.move_to_joint_positions(joints)
+
+    # def update_joints(self, joints):
+    #     joints = torch.Tensor(joints)
+    #     if self._robot.is_running_policy():
+    #         self._robot.terminate_current_policy()
+    #         time.sleep(2)
+    #     self._robot.move_to_joint_positions(joints)
 
     def update_gripper(self, close_percentage):
         # why does this only got to 0.05?
-        return
         desired_gripper = np.clip(1 - close_percentage, 0.05, 1)
         self._gripper.goto(width=self._max_gripper_width * desired_gripper, speed=0.1, force=0.1)
 
@@ -67,8 +75,11 @@ class FrankaRobot:
     def get_joint_velocities(self):
         return self._robot.get_joint_velocities().numpy()
 
+    @property
+    def gripper_width(self):
+        return self._gripper.get_state().width
+
     def get_gripper_state(self):
-        return np.array([0,0])
         width_init = self._gripper.get_state().width / self._max_gripper_width
         time_1 = time.time()
         
@@ -89,3 +100,10 @@ class FrankaRobot:
         pos, quat = self._robot.get_ee_pose()
         angle = quat_to_euler(quat.numpy())
         return angle
+
+ # old code
+    # if flag < 0:
+    #         desired_gripper = 0
+    #     elif flag >= 0:
+    #         desired_gripper = 1
+    #     self._gripper.goto(width=0.5, speed=0.1, force=0.1)

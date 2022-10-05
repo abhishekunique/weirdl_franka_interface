@@ -63,6 +63,15 @@ conda activate polymetis-local
 launch_robot.py robot_client=franka_hardware robot_client.executable_cfg.robot_ip=172.16.0.2
 ```
 
+Then create a new screen within tmux (CTRL + C) and cycle to it (CTRL + N),
+and run the following command to start the robotiq gripper. You might get an error
+that the command was rejected and the gripper is not activated, but if the gripper moved
+try the command again and it should work. The terminal should prompt that the 
+robotiq gripper is activated
+```
+sudo chmod a+rw /dev/ttyUSB0
+launch_gripper.py gripper=robotiq_2f gripper.comport=/dev/ttyUSB0
+```
 # Error FAQ
 If when running the server, you see the following or similar error
 ```
@@ -85,9 +94,14 @@ RuntimeError: Caught an unknown exception!
 There is a mismatch between the versions installed by the local version of polymetis
 and the versions you need
 ```
-pip install mujoco-2.2.1
-pip install dm-control 1.0.5
+pip install mujoco==2.2.1
+pip install dm-control==1.0.5
 ```
+## User stop mode
+If the robot enters user stop mode, the polymetis-server will crash unfortunately. If the robot
+needs a manual reset, make sure the training script is halted, then perform the manual reset
+and ensure that a new polymetis server is running before continuing.
+
 ## TODO
 Resolve 'Get called buffer size' which repeatedly prints a growing buffer
 size to the terminal log. Doesn't seem to affect functionality but Sasha didn't see it

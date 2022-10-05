@@ -26,9 +26,6 @@ class MultiCameraWrapper:
 		all_frames = []
 		for camera in self._all_cameras:
 			curr_feed = camera.read_camera()
-			# ask sasha about this
-			# while curr_feed is None:
-			# 	curr_feed = camera.read_camera()
 			if curr_feed is not None:
 				all_frames.extend(curr_feed)
 		return all_frames

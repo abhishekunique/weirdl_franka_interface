@@ -15,7 +15,7 @@ from gym.spaces import Box, Dict
 
 class RobotEnv(gym.Env):
     
-    def __init__(self, ip_address=None, use_hand_centric_view, use_third_person_view, robot=1, random_reset=True, 
+    def __init__(self, use_hand_centric_view=True, use_third_person_view=True, ip_address=None, robot=1, random_reset=True, 
                 demo_collection_mode=False, hz=10, pause_resets=False, viz=False, goal_state=None,
                 path_length=100, state='ee'):
         # Initialize Gym Environment
@@ -23,7 +23,7 @@ class RobotEnv(gym.Env):
 
         # Physics
         self.use_desired_pose = True
-        self.max_lin_vel = 0.1
+        self.max_lin_vel = 0.15
         self.max_rot_vel = 0.5
         self.DoF = 3
         self.hz = hz
@@ -32,29 +32,28 @@ class RobotEnv(gym.Env):
         self.max_path_length = path_length
         self._max_episode_steps = self.max_path_length
         # default reset position
-        self.resetpos = np.array([0.5, 0, 0.15, # x y z (position)
-                                  0.0, # gripper_width
-                                  1.0, 0.0, 0.0, 0.0]) # quat0, quat1, quat2, quat3 (orientation)
+        self.resetpos = np.array([0.5, 0, 0.15]) # x y z (position) gripper status
         self.first_person = use_hand_centric_view
         self.third_person = use_third_person_view
         self.demo_collection_mode = demo_collection_mode
         self.random_reset = random_reset
         self.pause_resets = pause_resets
-
+        self.viz = viz
+        self.state = state
         ## Action/Observation Space
         self.action_space = Box(
                 np.array([-1, -1, -1, -1]), # dx_low, dy_low, dz_low, dgripper_low
                 np.array([1, 1, 1, 1]), # dx_high, dy_high, dz_high, dgripper_high
         )
-        # x y z gripper
+        # x y z gripper (robotiq)
         self.lowdim_space = Box(
-                np.array([0.4, -0.16, 0.01, 0]),
-                np.array([0.7, 0.16, 0.15, 0.08]),
+                np.array([0.4, -0.18, 0.05, 0.0045]),
+                np.array([0.7, 0.17, 0.3, 0.085]),
         )
 
         # joint limits
-        self.jointmax = np.array([2.8973, 1.7628, 2.8973, -0.0698, 2.8973, 3.7525, 2.8973, 0.08], dtype=np.float32)
-        self.jointmin = np.array([-2.8973, -1.7628, -2.8973, -3.0718, -2.8973, -0.0175, -2.8973, 0.0], dtype=np.float32)
+        self.jointmax = np.array([2.8973, 1.7628, 2.8973, -0.0698, 2.8973, 3.7525, 2.8973, 0.085], dtype=np.float32)
+        self.jointmin = np.array([-2.8973, -1.7628, -2.8973, -3.0718, -2.8973, -0.0175, -2.8973, 0.0045], dtype=np.float32)
 
         # total low dim space with joints and gripper included
         self.qpos_space = Box(
@@ -63,8 +62,8 @@ class RobotEnv(gym.Env):
         )
 
         env_obs_spaces = {
-            'hand_img_obs': Box(0, 255, (3, self.img_size, self.img_size), np.uint8),
-            'third_person_img_obs': Box(0, 255, (3, self.img_size, self.img_size), np.uint8),
+            'hand_img_obs': Box(0, 255, (3, 100, 100), np.uint8),
+            'third_person_img_obs': Box(0, 255, (3, 100, 100), np.uint8),
             'lowdim_obs': self.lowdim_space,
             'lowdim_qpos': self.qpos_space,
         }
@@ -74,7 +73,7 @@ class RobotEnv(gym.Env):
             env_obs_spaces.pop('third_person_img_obs', None)
         self.observation_space = Dict(env_obs_spaces)
 
-        x_low, y_low, _, _ = self.lowdim_space.low
+        x_low, y_low, _, _= self.lowdim_space.low
         x_high, y_high, z_high, _ = self.lowdim_space.high
         x_mid, y_mid = (x_low + x_high) / 2, (y_low + y_high) / 2
         self.resetpos[0] = x_mid
@@ -91,9 +90,7 @@ class RobotEnv(gym.Env):
         else:
             self._robot = RobotInterface(ip_address=ip_address)
 
-        # Drawer task
-        self.reset_joints = np.array([0., -np.pi/4,  0, -3/4 * np.pi, 0,  np.pi/2, 0.])
-
+        self.reset_joints = np.array([0, 0.115, 0, -2.257, 0.013, 2.257, 1.544])
         # Create Cameras
         # use local cameras when running env on NUC
         # use robot cameras when running env on workstation
@@ -102,8 +99,6 @@ class RobotEnv(gym.Env):
         
         if self._use_local_cameras:
            self._camera_reader = MultiCameraWrapper()
-
-        self.reset()
 
     def step(self, action):
         start_time = time.time()
@@ -117,6 +112,8 @@ class RobotEnv(gym.Env):
         print(f'lin vel {lin_vel}')
         desired_pos = self._curr_pos + lin_vel
         desired_angle = add_angles(rot_vel, self._curr_angle)
+        print(f'desired angle {desired_angle}')
+        print(f'gripper state {self._robot.gripper_width}')
         # Desired position is current position plus
         # the resulting velocity from current action
         self._update_robot(desired_pos, desired_angle, gripper)
@@ -151,11 +148,8 @@ class RobotEnv(gym.Env):
     def reset(self):
         self._robot.update_gripper(0)
 
-        if self.epcount % 10 == 0:
-            self._robot.update_joints(self.reset_joints)
-            time.sleep(5)
-
-        self.epcount += 1
+        #if self.epcount % 10 == 0:
+        self._robot.update_joints(self.reset_joints)
 
         if self.pause_resets:
             # sleep for one second so I have time to keyboard interrupt if necessary
@@ -169,7 +163,12 @@ class RobotEnv(gym.Env):
         self._desired_pose = {'position': self._robot.get_ee_pos(),
                               'angle': self._robot.get_ee_angle(),
                               'gripper': 0}
-        self._default_angle = self._desired_pose['angle']
+        # fix default angle at first joint reset
+        if self.epcount == 0:                              
+            self._default_angle = self._desired_pose['angle']
+
+        self.epcount += 1
+        #self.go_to_rest()
         return self.get_observation()
 
     def _format_action(self, action):
@@ -220,7 +219,6 @@ class RobotEnv(gym.Env):
             pos[0] = pos[0].clip(x_low, x_high) # new x
             pos[1] = pos[1].clip(y_low, y_high) # new y
             pos[2] = pos[2].clip(z_low, z_high) # new z
-
         feasible_pos, feasible_angle = self._robot.update_pose(pos, angle)
         self._robot.update_gripper(gripper)
         self._desired_pose = {'position': feasible_pos, 
@@ -268,6 +266,43 @@ class RobotEnv(gym.Env):
 
         return state_dict
 
+    def go_to_rest(self):
+        # reset robot, also update desired pose for controller
+        print(f'reseting franka pos!')
+        # 1 for an open gripper
+        curr_pos = np.concatenate([self._robot.get_ee_pos(), [1]])
+        curr_lowdim = self.normalize_lowdim_obs(curr_pos)
+        if self.random_reset:
+            restp = self.resetpos[:].copy()
+            random_vec = np.random.uniform(-0.1, 0.1, (3,))
+            restp += random_vec
+            rest_pos = np.concatenate([restp, [1]])
+            rest_lowdim = self.normalize_lowdim_obs(rest_pos)
+            # slowly move to rest from
+            # current position with small deltas
+            pos_delta = rest_lowdim - curr_lowdim
+            act_delta = pos_delta / 20
+            for idx in range(20):
+                print(f'step {idx}')
+                print(f'delta {act_delta}')
+                self.step(act_delta)
+                curr_pos = np.concatenate([self._robot.get_ee_pos(), [1]])
+                curr_lowdim = self.normalize_lowdim_obs(curr_pos)
+                pos_delta = rest_lowdim - curr_lowdim
+                act_delta = pos_delta / 20
+            #t0 = time.time()
+            # while time.time() - t0 < 2:
+            #     self._update_robot(restp, self._default_angle, 0)
+            #     time.sleep(1.0)
+        else:    
+            t0 = time.time()
+            while time.time() - t0 < 2:
+                self._update_robot(restp, self._default_angle, 0)
+                time.sleep(1.0)
+        self._desired_pose = {'position': self._robot.get_ee_pos(),
+                              'angle': self._robot.get_ee_angle(),
+                              'gripper': 0}
+    
     def get_observation(self, include_images=True, include_robot_state=True):
         obs_dict = {}
         if include_images:
@@ -277,16 +312,37 @@ class RobotEnv(gym.Env):
             obs_dict.update(state_dict)
 
         # normalize state and qpos
-        normalized_lowdim_obs = obs_dict['current_pose']
-        normalized_qpos = obs_dict['joint_positions']
-        hand_img_obs = obs_dict['images'][0]['array']
-        third_person_img_obs = obs_dict['images'][1]['array']
+        curr_gripper_width = self._robot.gripper_width
+        lowdim_obs = np.concatenate([obs_dict['current_pose'][:3], [curr_gripper_width]])
+        qpos = np.concatenate([obs_dict['joint_positions'],  [curr_gripper_width]])
+        normalized_lowdim_obs = self.normalize_lowdim_obs(lowdim_obs)
+        normalized_qpos = self.normalize_qpos(qpos)
+        obs_first = obs_dict['images'][0]['array']
+        obs_third = obs_dict['images'][1]['array']
+
+        # format first / third person view
+        if self.first_person and not self.third_person:
+            img_obs = obs_first
+        elif self.third_person and not self.first_person:
+            img_obs = obs_third
+        elif self.third_person and self.first_person:
+            img_obs = np.concatenate([obs_first, obs_third], axis=2)
+        
         if self.demo_collection_mode:
-            total = {
+            obs_dict = {
                 'lowdim_obs': normalized_lowdim_obs,
-                'hand_img_obs': hand_img_obs,
-                'third_person_img_obs': third_person_img_obs,
+                'hand_img_obs': obs_first,
+                'third_person_img_obs': obs_third,
                 'lowdim_qpos': normalized_qpos
+            }
+        elif self.viz:
+            # we only want visual observations
+            obs_dict = img_obs
+        else:
+            state = normalized_lowdim_obs if self.state == 'ee' else normalized_qpos
+            obs_dict = {
+                'imgs': img_obs,
+                'state': state
             }
         return obs_dict
 
