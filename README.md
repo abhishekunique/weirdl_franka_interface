@@ -97,6 +97,10 @@ and the versions you need
 pip install mujoco==2.2.1
 pip install dm-control==1.0.5
 ```
+### Cameras are not being detected
+If you are using local polymetis to control the robot, make sure you are not running a server.
+The server would have taken over the cameras and for security reasons the local env cannot use them.
+
 ## User stop mode
 If the robot enters user stop mode, the polymetis-server will crash unfortunately. If the robot
 needs a manual reset, make sure the training script is halted, then perform the manual reset
