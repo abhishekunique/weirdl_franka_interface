@@ -113,7 +113,7 @@ class RobotEnv(gym.Env):
         desired_pos = self._curr_pos + lin_vel
         desired_angle = add_angles(rot_vel, self._curr_angle)
         print(f'desired angle {desired_angle}')
-        print(f'gripper state {self._robot.gripper_width}')
+        print(f'gripper state {self._robot.get_gripper_state()}')
         # Desired position is current position plus
         # the resulting velocity from current action
         self._update_robot(desired_pos, desired_angle, gripper)
@@ -312,7 +312,7 @@ class RobotEnv(gym.Env):
             obs_dict.update(state_dict)
 
         # normalize state and qpos
-        curr_gripper_width = self._robot.gripper_width
+        curr_gripper_width = self._robot.get_gripper_state()
         lowdim_obs = np.concatenate([obs_dict['current_pose'][:3], [curr_gripper_width]])
         qpos = np.concatenate([obs_dict['joint_positions'],  [curr_gripper_width]])
         normalized_lowdim_obs = self.normalize_lowdim_obs(lowdim_obs)

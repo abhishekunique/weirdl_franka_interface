@@ -80,15 +80,7 @@ class FrankaRobot:
         return self._gripper.get_state().width
 
     def get_gripper_state(self):
-        width_init = self._gripper.get_state().width / self._max_gripper_width
-        time_1 = time.time()
-        
-        width = self._gripper.get_state().width / self._max_gripper_width
-        time_2 = time.time()
-
-        vel = (width - width_init) / (time_2 - time_1)
-
-        return np.array([width, vel])
+        return self._gripper.get_state().width
 
     def get_ee_pos(self):
         '''Returns [x,y,z]'''
