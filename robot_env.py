@@ -335,16 +335,13 @@ class RobotEnv(gym.Env):
         normalized_qpos = self.normalize_qpos(qpos)
         obs_first = obs_dict['images'][0]['array']
         obs_third = obs_dict['images'][1]['array']
-
         # format first / third person view
-        import ipdb; ipdb.set_trace()
         if self.first_person and not self.third_person:
             img_obs = obs_first
         elif self.third_person and not self.first_person:
             img_obs = obs_third
         elif self.third_person and self.first_person:
             img_obs = np.concatenate([obs_first, obs_third], axis=2)
-        
         if self.demo_collection_mode:
             obs_dict = {
                 'lowdim_obs': normalized_lowdim_obs,
