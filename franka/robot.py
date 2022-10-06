@@ -64,10 +64,15 @@ class FrankaRobot:
     #         time.sleep(2)
     #     self._robot.move_to_joint_positions(joints)
 
-    def update_gripper(self, close_percentage):
+    def update_gripper(self, flag):
         # why does this only got to 0.05?
-        desired_gripper = np.clip(1 - close_percentage, 0.05, 1)
-        self._gripper.goto(width=self._max_gripper_width * desired_gripper, speed=0.1, force=0.1)
+        # desired_gripper = np.clip(1 - close_percentage, 0.05, 1)
+        # self._gripper.goto(width=self._max_gripper_width * desired_gripper, speed=0.1, force=0.1)
+        if flag < 0:
+            desired_gripper = 0.005
+        elif flag >= 0:
+            desired_gripper = 0.085
+        self._gripper.goto(width=desired_gripper, speed=0.1, force=0.1)
 
     def get_joint_positions(self):
         return self._robot.get_joint_positions().numpy()
@@ -93,7 +98,7 @@ class FrankaRobot:
         angle = quat_to_euler(quat.numpy())
         return angle
 
- # old code
+
     # if flag < 0:
     #         desired_gripper = 0
     #     elif flag >= 0:
