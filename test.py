@@ -5,7 +5,7 @@ import time
 
 #controller = XboxController(DoF=3)
 print(f'init env')
-ip_add = None#'172.24.68.68'
+ip_add = '172.24.68.68'
 env = RobotEnv(ip_address=ip_add)
 #env = RobotEnv()
 

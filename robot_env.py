@@ -258,11 +258,12 @@ class RobotEnv(gym.Env):
         state_dict['current_pose'] = np.concatenate(
             [self._robot.get_ee_pos(),
             self._robot.get_ee_angle(),
-            [gripper_state[0]]])
+            [gripper_state]])
 
         state_dict['joint_positions'] = self._robot.get_joint_positions()
         state_dict['joint_velocities'] = self._robot.get_joint_velocities()
-        state_dict['gripper_velocity'] = gripper_state[1]
+        # don't track gripper velocity
+        state_dict['gripper_velocity'] = 0
 
         return state_dict
 
