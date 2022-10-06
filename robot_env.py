@@ -345,8 +345,8 @@ class RobotEnv(gym.Env):
         if self.demo_collection_mode:
             obs_dict = {
                 'lowdim_obs': normalized_lowdim_obs,
-                'hand_img_obs': obs_first,
-                'third_person_img_obs': obs_third,
+                'hand_img_obs': obs_first.transpose(2, 0, 1),
+                'third_person_img_obs': obs_third.transpose(2, 0, 1),
                 'lowdim_qpos': normalized_qpos
             }
         elif self.viz:
