@@ -8,9 +8,9 @@ import numpy as np
 import time
 import gym
 
-from transformations import add_angles, angle_diff
-from camera_utils.multi_camera_wrapper import MultiCameraWrapper
-from server.robot_interface import RobotInterface
+from iris_robots.transformations import add_angles, angle_diff
+from iris_robots.camera_utils.multi_camera_wrapper import MultiCameraWrapper
+from iris_robots.server.robot_interface import RobotInterface
 from gym.spaces import Box, Dict
 
 class RobotEnv(gym.Env):
@@ -40,6 +40,11 @@ class RobotEnv(gym.Env):
         self.pause_resets = pause_resets
         self.viz = viz
         self.state = state
+        self.goal_state = None
+        if goal_state == 'left_open':
+            self.goal_state = [1, -1, 1, 1]
+        elif goal_state == 'right_closed':
+            self.goal_state = [1, 1, 1, -1]
         ## Action/Observation Space
         self.action_space = Box(
                 np.array([-1, -1, -1, -1]), # dx_low, dy_low, dz_low, dgripper_low
@@ -116,6 +121,11 @@ class RobotEnv(gym.Env):
         print(f'gripper state {self._robot.get_gripper_state()}')
         # Desired position is current position plus
         # the resulting velocity from current action
+        # get lowdim obs
+        state_dict = self.get_state()
+        curr_gripper_width = self._robot.get_gripper_state()
+        lowdim_obs = np.concatenate([state_dict['current_pose'][:3], [curr_gripper_width]])
+        lowdim_obs = self.normalize_lowdim_obs(lowdim_obs)
         self._update_robot(desired_pos, desired_angle, gripper)
 
         comp_time = time.time() - start_time
@@ -124,7 +134,12 @@ class RobotEnv(gym.Env):
         obs = self.get_observation()
 
         # set reward and done to None for now
-        reward = done = None
+        reward = -np.linalg.norm(lowdim_obs - self.goal_state) if self.goal_state is not None else 0.
+        self.curr_path_length += 1
+        if self.curr_path_length == self.max_path_length:
+            done = True
+        else:
+            done = False
         return obs, reward, done, {}
 
     def normalize_lowdim_obs(self, obs):
@@ -146,6 +161,7 @@ class RobotEnv(gym.Env):
         return norm_qpos
 
     def reset(self):
+        self.curr_path_length = 0
         self._robot.update_gripper(0)
 
         #if self.epcount % 10 == 0:

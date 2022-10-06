@@ -1,5 +1,5 @@
-from camera_utils.camera_thread import CameraThread
-from camera_utils.cv2_camera import gather_cv2_cameras, CV2Camera
+from iris_robots.camera_utils.camera_thread import CameraThread
+from iris_robots.camera_utils.cv2_camera import gather_cv2_cameras, CV2Camera
 import time
 import cv2
 
