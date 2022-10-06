@@ -99,8 +99,8 @@ class RobotEnv(gym.Env):
         # Create Cameras
         # use local cameras when running env on NUC
         # use robot cameras when running env on workstation
-        self._use_local_cameras = True
-        self._use_robot_cameras = False
+        self._use_local_cameras = False
+        self._use_robot_cameras = True
         
         if self._use_local_cameras:
            self._camera_reader = MultiCameraWrapper()
@@ -111,14 +111,10 @@ class RobotEnv(gym.Env):
         # Process Action
         assert len(action) == (self.DoF + 1)
         assert (action.max() <= 1) and (action.min() >= -1)
-        print(f'action! {action}')
         pos_action, angle_action, gripper = self._format_action(action)
         lin_vel, rot_vel = self._limit_velocity(pos_action, angle_action)
-        print(f'lin vel {lin_vel}')
         desired_pos = self._curr_pos + lin_vel
         desired_angle = add_angles(rot_vel, self._curr_angle)
-        print(f'desired angle {desired_angle}')
-        print(f'gripper state {self._robot.get_gripper_state()}')
         # Desired position is current position plus
         # the resulting velocity from current action
         # get lowdim obs
@@ -367,8 +363,8 @@ class RobotEnv(gym.Env):
         if mode == 'video':
             # render third person view at full quality
             image_obs = self.get_images()
-            obs_first = image_obs['images'][0]['array']
-            obs_third = image_obs['images'][1]['array']
+            obs_first = image_obs[0]['array']
+            obs_third = image_obs[1]['array']
             obs = np.concatenate([obs_first, obs_third], axis=0)
             return obs
         else:
