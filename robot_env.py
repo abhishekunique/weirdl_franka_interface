@@ -8,12 +8,12 @@ import numpy as np
 import time
 import gym
 
-# from iris_robots.transformations import add_angles, angle_diff
-# from iris_robots.camera_utils.multi_camera_wrapper import MultiCameraWrapper
-# from iris_robots.server.robot_interface import RobotInterface
-from transformations import add_angles, angle_diff
-from camera_utils.multi_camera_wrapper import MultiCameraWrapper
-from server.robot_interface import RobotInterface
+from iris_robots.transformations import add_angles, angle_diff
+from iris_robots.camera_utils.multi_camera_wrapper import MultiCameraWrapper
+from iris_robots.server.robot_interface import RobotInterface
+# from transformations import add_angles, angle_diff
+# from camera_utils.multi_camera_wrapper import MultiCameraWrapper
+# from server.robot_interface import RobotInterface
 from gym.spaces import Box, Dict
 
 class RobotEnv(gym.Env):
@@ -102,8 +102,8 @@ class RobotEnv(gym.Env):
         # Create Cameras
         # use local cameras when running env on NUC
         # use robot cameras when running env on workstation
-        self._use_local_cameras = True
-        self._use_robot_cameras = False
+        self._use_local_cameras = False
+        self._use_robot_cameras = True
         
         if self._use_local_cameras:
            self._camera_reader = MultiCameraWrapper()
@@ -125,7 +125,6 @@ class RobotEnv(gym.Env):
         curr_gripper_width = self._robot.get_gripper_state()
         lowdim_obs = np.concatenate([state_dict['current_pose'][:3], [curr_gripper_width]])
         lowdim_obs = self.normalize_lowdim_obs(lowdim_obs)
-        print(f'\n low dim obs ! {lowdim_obs}')
         self._update_robot(desired_pos, desired_angle, gripper)
 
         comp_time = time.time() - start_time
@@ -338,6 +337,7 @@ class RobotEnv(gym.Env):
         obs_third = obs_dict['images'][1]['array']
 
         # format first / third person view
+        import ipdb; ipdb.set_trace()
         if self.first_person and not self.third_person:
             img_obs = obs_first
         elif self.third_person and not self.first_person:
