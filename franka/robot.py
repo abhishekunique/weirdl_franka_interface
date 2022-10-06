@@ -72,7 +72,7 @@ class FrankaRobot:
             desired_gripper = 0.005
         elif flag >= 0:
             desired_gripper = 0.085
-        self._gripper.goto(width=desired_gripper, speed=0.1, force=10)
+        self._gripper.goto(width=desired_gripper, speed=0.1, force=1000)
 
     def get_joint_positions(self):
         return self._robot.get_joint_positions().numpy()
