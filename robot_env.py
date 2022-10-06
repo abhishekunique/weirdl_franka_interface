@@ -26,7 +26,7 @@ class RobotEnv(gym.Env):
 
         # Physics
         self.use_desired_pose = True
-        self.max_lin_vel = 0.15
+        self.max_lin_vel = 0.1
         self.max_rot_vel = 0.5
         self.DoF = 3
         self.hz = hz
@@ -55,7 +55,7 @@ class RobotEnv(gym.Env):
         )
         # x y z gripper (robotiq)
         self.lowdim_space = Box(
-                np.array([0.4, -0.18, 0.05, 0.0045]),
+                np.array([0.4, -0.18, 0.16, 0.0045]),
                 np.array([0.7, 0.17, 0.3, 0.085]),
         )
 
