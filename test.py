@@ -15,7 +15,9 @@ env.reset()
 
 max_steps = 10000
 for i in range(max_steps):
+	#import ipdb; ipdb.set_trace()
 	action = np.random.uniform(0, 1, (4, ))
+	action[3] = int(np.random.randint(-1, 2))
 	obs, reward, done, info = env.step(action)
 	if (i % 50) == 0:
 		print(f'\n resseting ! \n')
