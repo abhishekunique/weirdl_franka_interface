@@ -288,8 +288,8 @@ class RobotEnv(gym.Env):
         # 1 for an open gripper
         curr_pos = np.concatenate([self._robot.get_ee_pos(), [1]])
         curr_lowdim = self.normalize_lowdim_obs(curr_pos)
+        restp = self.resetpos[:].copy()
         if self.random_reset:
-            restp = self.resetpos[:].copy()
             random_vec = np.random.uniform(-0.1, 0.1, (3,))
             restp += random_vec
             rest_pos = np.concatenate([restp, [1]])
@@ -297,24 +297,22 @@ class RobotEnv(gym.Env):
             # slowly move to rest from
             # current position with small deltas
             pos_delta = rest_lowdim - curr_lowdim
-            act_delta = pos_delta / 20
-            for idx in range(20):
+            act_delta = pos_delta / 2
+            for idx in range(30):
                 print(f'step {idx}')
                 print(f'delta {act_delta}')
                 self.step(act_delta)
                 curr_pos = np.concatenate([self._robot.get_ee_pos(), [1]])
                 curr_lowdim = self.normalize_lowdim_obs(curr_pos)
                 pos_delta = rest_lowdim - curr_lowdim
-                act_delta = pos_delta / 20
+                act_delta = pos_delta / 2
             #t0 = time.time()
             # while time.time() - t0 < 2:
             #     self._update_robot(restp, self._default_angle, 0)
             #     time.sleep(1.0)
-        else:    
-            t0 = time.time()
-            while time.time() - t0 < 2:
-                self._update_robot(restp, self._default_angle, 0)
-                time.sleep(1.0)
+        else:
+            self._update_robot(restp, self._default_angle, 0)    
+
         self._desired_pose = {'position': self._robot.get_ee_pos(),
                               'angle': self._robot.get_ee_angle(),
                               'gripper': 0}
