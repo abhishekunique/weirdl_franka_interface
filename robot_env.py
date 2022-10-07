@@ -169,6 +169,8 @@ class RobotEnv(gym.Env):
         
         if self.random_reset and self.epcount != 0:
             self.randomize_reset_pos()
+            time.sleep(1)
+
 
         if self.pause_resets:
             # sleep for one second so I have time to keyboard interrupt if necessary

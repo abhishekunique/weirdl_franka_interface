@@ -88,6 +88,12 @@ otherwise pass in the ip address as None to the robot env when running on the NU
 conda activate polymetis-local
 python ~/iris_robots/run_server.py
 ```
+# Demo Collection
+The repo should already have the module/submodule structure created
+so run the demo recording script as a module
+```
+python -m iris_robots.record_demos
+```
 # Error FAQ
 If when running the server, you see the following or similar error
 ```
