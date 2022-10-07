@@ -53,7 +53,11 @@ go through local server install process
 
 # Start server
 Note that you should add the iris_robots repo to the python
-path of whichever machine you're using.
+path of whichever machine you're using. For example
+
+```
+export PYTHONPATH=$PYTHONPATH:~/iris_robots/
+```
 
 First you must start a server to communicate with the robot
 on the NUC. Thankfully, once you go through the **local** polymetis
