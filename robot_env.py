@@ -163,6 +163,8 @@ class RobotEnv(gym.Env):
 
         self._robot.update_joints(self.reset_joints)
 
+        self._robot.update_gripper(0)
+
         if self.pause_resets:
             # sleep for one second so I have time to keyboard interrupt if necessary
             user_input = input("Enter (s) to wait 5 seconds & anything else to continue: ")
