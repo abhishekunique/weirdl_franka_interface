@@ -17,10 +17,12 @@ from iris_robots.server.robot_interface import RobotInterface
 from gym.spaces import Box, Dict
 
 class RobotEnv(gym.Env):
-    
-    def __init__(self, use_hand_centric_view=True, use_third_person_view=True, ip_address=None, robot=1, random_reset=True, 
+    '''
+    TODO (add docstring on meaning / explanation for all flags)
+    '''
+    def __init__(self, use_hand_centric_view=True, use_third_person_view=True, ip_address=None, random_reset=True, 
                 demo_collection_mode=False, hz=10, pause_resets=False, viz=False, goal_state=None,
-                path_length=100, state='ee'):
+                path_length=100, state='ee', local_cam=False):
         # Initialize Gym Environment
         super().__init__()
 
@@ -100,11 +102,11 @@ class RobotEnv(gym.Env):
 
         self.reset_joints = np.array([0, 0.115, 0, -2.257, 0.013, 2.257, 1.544])
         # Create Cameras
-        # use local cameras when running env on NUC
-        # use robot cameras when running env on workstation
-        self._use_local_cameras = False
-        self._use_robot_cameras = True
-        
+        # use local cameras when training on machine with cameras
+        # use robot cameras when pinging NUC
+        self._use_local_cameras = local_cam
+        self._use_robot_cameras = not local_cam
+
         if self._use_local_cameras:
            self._camera_reader = MultiCameraWrapper()
 
@@ -121,10 +123,6 @@ class RobotEnv(gym.Env):
         # Desired position is current position plus
         # the resulting velocity from current action
         # get lowdim obs
-        state_dict = self.get_state()
-        curr_gripper_width = self._robot.get_gripper_state()
-        lowdim_obs = np.concatenate([state_dict['current_pose'][:3], [curr_gripper_width]])
-        lowdim_obs = self.normalize_lowdim_obs(lowdim_obs)
         self._update_robot(desired_pos, desired_angle, gripper)
 
         comp_time = time.time() - start_time
@@ -133,7 +131,7 @@ class RobotEnv(gym.Env):
         obs = self.get_observation()
 
         # set reward and done to None for now
-        reward = -np.linalg.norm(lowdim_obs - self.goal_state) if self.goal_state is not None else 0.
+        reward = -np.linalg.norm(obs['state'] - self.goal_state) if self.goal_state is not None else 0.
         self.curr_path_length += 1
         if self.curr_path_length == self.max_path_length:
             done = True
@@ -163,7 +161,6 @@ class RobotEnv(gym.Env):
         self.curr_path_length = 0
         self._robot.update_gripper(0)
 
-        #if self.epcount % 10 == 0:
         self._robot.update_joints(self.reset_joints)
 
         if self.pause_resets:
@@ -178,12 +175,13 @@ class RobotEnv(gym.Env):
         self._desired_pose = {'position': self._robot.get_ee_pos(),
                               'angle': self._robot.get_ee_angle(),
                               'gripper': 0}
+
         # fix default angle at first joint reset
         if self.epcount == 0:                              
             self._default_angle = self._desired_pose['angle']
 
         self.epcount += 1
-        #self.go_to_rest()
+
         return self.get_observation()
 
     def _format_action(self, action):
@@ -316,7 +314,7 @@ class RobotEnv(gym.Env):
         self._desired_pose = {'position': self._robot.get_ee_pos(),
                               'angle': self._robot.get_ee_angle(),
                               'gripper': 0}
-    
+
     def get_observation(self, include_images=True, include_robot_state=True):
         obs_dict = {}
         if include_images:

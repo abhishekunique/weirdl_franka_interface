@@ -52,6 +52,9 @@ Also when installing on NUC to get server running conda commands don't work,
 go through local server install process
 
 # Start server
+Note that you should add the iris_robots repo to the python
+path of whichever machine you're using.
+
 First you must start a server to communicate with the robot
 on the NUC. Thankfully, once you go through the **local** polymetis
 instruction cycle on the NUC, running the server should be straight forward.
@@ -70,7 +73,16 @@ try the command again and it should work. The terminal should prompt that the
 robotiq gripper is activated
 ```
 sudo chmod a+rw /dev/ttyUSB0
+conda activate polymetis-local
 launch_gripper.py gripper=robotiq_2f gripper.comport=/dev/ttyUSB0
+```
+
+Finally, create a new screen and run the flask server, which communicates between
+the nuc / workstation. Note you ONLY need this if you're running on a workstation,
+otherwise pass in the ip address as None to the robot env when running on the NUC.
+```
+conda activate polymetis-local
+python ~/iris_robots/run_server.py
 ```
 # Error FAQ
 If when running the server, you see the following or similar error
@@ -109,3 +121,13 @@ and ensure that a new polymetis server is running before continuing.
 ## TODO
 Resolve 'Get called buffer size' which repeatedly prints a growing buffer
 size to the terminal log. Doesn't seem to affect functionality but Sasha didn't see it
+
+Make it so we can vary image size as a flag to robot-env
+
+go to rest, rename to randomize position, just take some random 
+actions at center
+
+clean up get observation, just return all info and remove
+viz and demo collection flags
+
+Add demo collection script to repo
