@@ -157,6 +157,9 @@ class RobotEnv(gym.Env):
         norm_qpos = 2 * (qpos - self.jointmin) / (self.jointmax - self.jointmin) - 1
         return norm_qpos
 
+    def reset_gripper(self):
+        self._robot.update_gripper(0)
+        
     def reset(self):
         self.curr_path_length = 0
         self._robot.update_gripper(0)
