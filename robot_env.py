@@ -161,10 +161,10 @@ class RobotEnv(gym.Env):
 
     def reset(self):
         self.curr_path_length = 0
-        self._robot.update_gripper(0)
-
         #if self.epcount % 10 == 0:
         self._robot.update_joints(self.reset_joints)
+
+        self._robot.update_gripper(0)
 
         if self.pause_resets:
             # sleep for one second so I have time to keyboard interrupt if necessary
