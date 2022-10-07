@@ -163,7 +163,12 @@ class RobotEnv(gym.Env):
 
         self._robot.update_joints(self.reset_joints)
 
-        self._robot.update_gripper(0)
+        # fix default angle at first joint reset
+        if self.epcount == 0:                              
+            self._default_angle = self._robot.get_ee_angle()
+        
+        if self.random_reset and self.epcount != 0:
+            self.randomize_reset_pos()
 
         if self.pause_resets:
             # sleep for one second so I have time to keyboard interrupt if necessary
@@ -177,11 +182,6 @@ class RobotEnv(gym.Env):
         self._desired_pose = {'position': self._robot.get_ee_pos(),
                               'angle': self._robot.get_ee_angle(),
                               'gripper': 0}
-
-        # fix default angle at first joint reset
-        if self.epcount == 0:                              
-            self._default_angle = self._desired_pose['angle']
-
         self.epcount += 1
 
         return self.get_observation()
@@ -282,40 +282,16 @@ class RobotEnv(gym.Env):
 
         return state_dict
 
-    def go_to_rest(self):
-        # reset robot, also update desired pose for controller
-        print(f'reseting franka pos!')
-        # 1 for an open gripper
-        curr_pos = np.concatenate([self._robot.get_ee_pos(), [1]])
-        curr_lowdim = self.normalize_lowdim_obs(curr_pos)
-        restp = self.resetpos[:].copy()
-        if self.random_reset:
-            random_vec = np.random.uniform(-0.1, 0.1, (3,))
-            restp += random_vec
-            rest_pos = np.concatenate([restp, [1]])
-            rest_lowdim = self.normalize_lowdim_obs(rest_pos)
-            # slowly move to rest from
-            # current position with small deltas
-            pos_delta = rest_lowdim - curr_lowdim
-            act_delta = pos_delta / 2
-            for idx in range(30):
-                print(f'step {idx}')
-                print(f'delta {act_delta}')
-                self.step(act_delta)
-                curr_pos = np.concatenate([self._robot.get_ee_pos(), [1]])
-                curr_lowdim = self.normalize_lowdim_obs(curr_pos)
-                pos_delta = rest_lowdim - curr_lowdim
-                act_delta = pos_delta / 2
-            #t0 = time.time()
-            # while time.time() - t0 < 2:
-            #     self._update_robot(restp, self._default_angle, 0)
-            #     time.sleep(1.0)
-        else:
-            self._update_robot(restp, self._default_angle, 0)    
-
-        self._desired_pose = {'position': self._robot.get_ee_pos(),
-                              'angle': self._robot.get_ee_angle(),
-                              'gripper': 0}
+    def randomize_reset_pos(self):
+        # simply take random actions
+        # along [x-y] plane
+        random_vec = np.random.uniform(-0.1, 0.1, (2,))
+        # don't change gripper or
+        # z-axis height
+        zeros = np.zeros((2,))
+        act_delta = np.concatenate([random_vec, zeros])
+        for _ in range(20):
+            self.step(act_delta)
 
     def get_observation(self, include_images=True, include_robot_state=True):
         obs_dict = {}
