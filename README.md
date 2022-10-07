@@ -70,6 +70,15 @@ conda activate polymetis-local
 launch_robot.py robot_client=franka_hardware robot_client.executable_cfg.robot_ip=172.16.0.2
 ```
 
+If doing an overnight run, then you'll want to start
+a persistent server bash script
+```
+sudo pkill -9 run_server
+conda activate polymetis-local
+cd ~/fairo/polymetis/polymetis/python/scripts/
+bash persist_server.sh
+```
+
 Then create a new screen within tmux (CTRL + C) and cycle to it (CTRL + N),
 and run the following command to start the robotiq gripper. You might get an error
 that the command was rejected and the gripper is not activated, but if the gripper moved
