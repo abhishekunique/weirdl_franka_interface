@@ -138,15 +138,8 @@ needs a manual reset, make sure the training script is halted, then perform the 
 and ensure that a new polymetis server is running before continuing.
 
 ## TODO
-Resolve 'Get called buffer size' which repeatedly prints a growing buffer
-size to the terminal log. Doesn't seem to affect functionality but Sasha didn't see it
 
 Make it so we can vary image size as a flag to robot-env
 
-go to rest, rename to randomize position, just take some random 
-actions at center
-
 clean up get observation, just return all info and remove
 viz and demo collection flags
-
-Add demo collection script to repo
