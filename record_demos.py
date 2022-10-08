@@ -44,7 +44,7 @@ class Workspace(object):
         self.controller = XboxController(DoF=3)
         self.trigger_start_time = time.time()
 
-        load_demo = False
+        load_demo = True
         self.demo_file = f"{self.work_dir}/demos.pkl"
 
         # Check if demo file exists already; if so, warn about overwrite (unless user is intentionally loading an existing one).
@@ -155,7 +155,7 @@ class Workspace(object):
         self.record_gif(hand_imgs_for_gif, f'{self.work_dir}/hand_video.gif')
         self.record_gif(third_person_imgs_for_gif, f'{self.work_dir}/third_person_video.gif')
 
-        user_input = input("Enter (s) to save this demo, (d) to discard, (j) to save and reset joints, (k) to discard and reset joints, and (q) to save and quit: ")
+        user_input = input("Enter (s) to save this demo, (d) to discard (q) to save and quit: ")
         if user_input in ['s', 'j', 'q']:
             for buf in buffer_list:
                 self.replay_buffer.add(*buf) # Add demo steps to replay buffer
@@ -174,9 +174,6 @@ class Workspace(object):
             self.step = 0
             if user_input == 's': # save episode
                 episode_num += 1
-            if user_input == 'j': # save episode and reset joints
-                episode_num += 1
-                self.env.reset_joints()
             if user_input == 'd': # discard episode
                 pass
             if user_input == 'k': # discard episode and reset joints
