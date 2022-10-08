@@ -44,8 +44,9 @@ class FrankaRobot:
         feasible_pos, feasible_quat = self._robot.robot_model.forward_kinematics(desired_qpos)
         feasible_pos, feasible_angle = feasible_pos.numpy(), quat_to_euler(feasible_quat.numpy())
 
-        if not self._robot.is_running_policy():
+        while not self._robot.is_running_policy():
             self._robot.start_cartesian_impedance()
+            time.sleep(3)
         self._robot.update_desired_joint_positions(desired_qpos)
 
         return feasible_pos, feasible_angle
