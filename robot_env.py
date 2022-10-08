@@ -171,6 +171,12 @@ class RobotEnv(gym.Env):
             self._default_angle = self._robot.get_ee_angle()
         
         if self.random_reset and self.epcount != 0:
+            # IMPORTANT! updated desired pose again
+            # so using env step is accurate and we 
+            # don't get jerky movements
+            self._desired_pose = {'position': self._robot.get_ee_pos(),
+                              'angle': self._robot.get_ee_angle(),
+                              'gripper': 0}
             self.randomize_reset_pos()
             time.sleep(1)
 
