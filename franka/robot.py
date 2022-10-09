@@ -45,6 +45,7 @@ class FrankaRobot:
         feasible_pos, feasible_angle = feasible_pos.numpy(), quat_to_euler(feasible_quat.numpy())
 
         while not self._robot.is_running_policy():
+            print('\n controller failed, trying again \n')
             self._robot.start_cartesian_impedance()
             time.sleep(5)
         self._robot.update_desired_joint_positions(desired_qpos)
