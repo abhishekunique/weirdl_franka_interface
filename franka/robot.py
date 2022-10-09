@@ -46,7 +46,7 @@ class FrankaRobot:
 
         while not self._robot.is_running_policy():
             self._robot.start_cartesian_impedance()
-            time.sleep(3)
+            time.sleep(5)
         self._robot.update_desired_joint_positions(desired_qpos)
 
         return feasible_pos, feasible_angle
