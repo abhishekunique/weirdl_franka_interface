@@ -97,6 +97,21 @@ otherwise pass in the ip address as None to the robot env when running on the NU
 conda activate polymetis-local
 python ~/iris_robots/run_server.py
 ```
+
+# Notes on Server
+Running the launch robot command uses the yaml file at
+`/home/panda5/fairo/polymetis/polymetis/conf/launch_robot.yaml`
+Also gives different options for choice of robot client.
+
+The file that determines the number of allowed automatic error recovery
+attempts is at
+` fairo/polymetis/polymetis/src/clients/franka_panda_client/franka_panda_client.cpp `
+And the constants used for all of this are here
+ `fairo/polymetis/polymetis/include/polymetis/clients/franka_panda_client.hpp` 
+
+ As for the server warning themselves, the warning for exceed the threshold of 
+ force is logged here
+`fairo/polymetis/polymetis/src/polymetis_server.cpp`
 # Demo Collection
 The repo should already have the module/submodule structure created
 so run the demo recording script as a module
@@ -128,9 +143,15 @@ and the versions you need
 pip install mujoco==2.2.1
 pip install dm-control==1.0.5
 ```
-### Cameras are not being detected
+## Cameras are not being detected
 If you are using local polymetis to control the robot, make sure you are not running a server.
 The server would have taken over the cameras and for security reasons the local env cannot use them.
+
+If no server is running and the cameras are still not detected, restart the NUC
+
+## Issue with Robotiq
+If the robotiq server results in this issue: https://github.com/facebookresearch/fairo/issues/1383
+Kill the tmux session and restart. Otherwise restart NUC
 
 ## User stop mode
 If the robot enters user stop mode, the polymetis-server will crash unfortunately. If the robot
