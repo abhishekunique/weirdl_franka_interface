@@ -34,14 +34,7 @@ Ask about update gripper function
 Running separate server for franka gripper is
 `` launch_gripper.py gripper=franka_hand ``
 
-Protobuf version that comes with polymetis gives error
-TypeError: bases must be types
 
-to get around it uninstall then install earlier version of protobuf
-
-`` pip uninstall protobuf ``
-
-`` pip install protobuf==3.20.1 `` 
 
 Need to also install dm_control (latest verison) and dm_robotics package to
 use the IK solver
@@ -143,6 +136,16 @@ and the versions you need
 pip install mujoco==2.2.1
 pip install dm-control==1.0.5
 ```
+
+## Protobuf version that comes with polymetis gives error
+TypeError: bases must be types
+
+to get around it uninstall then install earlier version of protobuf
+
+`` pip uninstall protobuf ``
+
+`` pip install protobuf==3.20.1 `` 
+
 ## Cameras are not being detected
 If you are using local polymetis to control the robot, make sure you are not running a server.
 The server would have taken over the cameras and for security reasons the local env cannot use them.
