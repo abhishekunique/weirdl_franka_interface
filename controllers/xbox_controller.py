@@ -9,7 +9,7 @@ pygame.joystick.init()
 
 class XboxController(object):
 	def __init__(self, DoF=6, pos_gain: float = 0.1, orien_gain: float = 15):
-		# Initialize Controller #
+		# Initialize Controller
 		self.joystick = pygame.joystick.Joystick(0)
 		self.joystick.init()
 		
