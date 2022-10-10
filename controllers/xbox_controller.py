@@ -6,6 +6,7 @@ import numpy as np
 
 pygame.init()
 pygame.joystick.init()
+
 class XboxController(object):
 	def __init__(self, DoF=6, pos_gain: float = 0.1, orien_gain: float = 15):
 		# Initialize Controller #
@@ -77,11 +78,20 @@ class XboxController(object):
 		return np.append(pose_action, [self.gripper_state])
 
 
-# import time
-# controller = XboxController(DoF=3)
-# for i in range(100000):
-# 	a = controller.get_action()
-# 	info = controller.get_info()
-# 	time.sleep(0.1)
-# 	print('Action:', a)
-# 	print(f'info {info}')
+if __name__ == "__main__":
+	from robot_env import RobotEnv
+	from controllers.xbox_controller import XboxController
+
+	controller = XboxController(DoF=3)
+	print(f'init env')
+	ip_add = '172.16.0.2'
+	env = RobotEnv(local_cam=True)
+
+	print(f'reset env')
+	env.reset()
+
+	max_steps = 10000
+	for i in range(max_steps):
+		obs = env.get_state()
+		action = controller.get_action()
+		env.step(action)
