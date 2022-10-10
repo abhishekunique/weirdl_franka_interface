@@ -56,8 +56,7 @@ class FrankaRobot:
             print(f'\n This has happened {self.except_restart} times \n')
             self._robot.start_cartesian_impedance()
             self._robot.update_desired_joint_positions(desired_qpos)
-
-        print(f'sent joint position {desired_qpos}!')
+            
         return feasible_pos, feasible_angle
     
     def update_joints(self, joints):
