@@ -21,6 +21,7 @@ class FrankaRobot:
         self._robot = RobotInterface(ip_address="localhost")
         self._gripper = GripperInterface(ip_address="localhost")
         self._ik_solver = RobotIKSolver(self._robot, control_hz=control_hz)
+        self.except_restart = 0
         # this is returning zero
         self._max_gripper_width = 0.085
 
@@ -44,12 +45,19 @@ class FrankaRobot:
         feasible_pos, feasible_quat = self._robot.robot_model.forward_kinematics(desired_qpos)
         feasible_pos, feasible_angle = feasible_pos.numpy(), quat_to_euler(feasible_quat.numpy())
 
-        while not self._robot.is_running_policy():
+        if not self._robot.is_running_policy():
             print('\n controller failed, trying again \n')
             self._robot.start_cartesian_impedance()
-            time.sleep(5)
-        self._robot.update_desired_joint_positions(desired_qpos)
+        try:
+            self._robot.update_desired_joint_positions(desired_qpos)
+        except:
+            print('\n impedance not started, trying again \n')
+            self.except_restart += 1
+            print(f'\n This has happened {self.except_restart} times \n')
+            self._robot.start_cartesian_impedance()
+            self._robot.update_desired_joint_positions(desired_qpos)
 
+        print(f'sent joint position {desired_qpos}!')
         return feasible_pos, feasible_angle
     
     def update_joints(self, joints):
