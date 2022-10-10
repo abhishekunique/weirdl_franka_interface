@@ -29,15 +29,15 @@ class Workspace(object):
         self.device = torch.device('cuda')
         self.verbose = False
         # init robot env
-    env_kwargs = {
-        'ip_address' : '172.24.68.68',
-        'use_hand_centric_view': True,
-        'use_third_person_view': True,
-        'random_reset': True,
-        'hz': 10,
-        'pause_resets': True,
-        'viz' : False,
-        'demo_collection_mode': True,
+        env_kwargs = {
+            'ip_address' : '172.24.68.68',
+            'use_hand_centric_view': True,
+            'use_third_person_view': True,
+            'random_reset': True,
+            'hz': 10,
+            'pause_resets': True,
+            'viz' : False,
+            'demo_collection_mode': True,
         }
         self.env = RobotEnv(**env_kwargs)
         self.step = 0

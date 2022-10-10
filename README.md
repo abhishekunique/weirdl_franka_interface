@@ -1,91 +1,70 @@
 # iris_robots: Franka
 ## Adaptation of polymetis for Franka 
 
-
-## Install instructions
+## Setup instructions
 If working on a workstation / separate machine from controller (NUC), make a conda env using `conda create -n polymetis python=3.8`
 
 Install polymetis as `conda install -c pytorch -c fair-robotics -c aihabitat -c conda-forge polymetis`
-
-Note: This will take a long time to populate (few minutes), be patient
-Also need to install
-gym
-OpenCV
-pygame
-ipdb
-absl
-
-(Put these in a requirements.txt file or yml)
-
-# Notes
-The RobotEnv is a gym wrapper around the polymetis logic.
-This is what takes in the step function, etc and does
-The functionality we would expect from an agnostic
-gym wrapper.
-
-The FrankaRobot is a class that will launch a RoBotInterface
-class internally to ping the robot at the desired ip address.
-Think of FrankaRobot as a wrapper around each of the
-ip commands we use to ping / recieve commands to / from the 
-server and then to the robot
-
-Ask about update gripper function
-
-Running separate server for franka gripper is
-`` launch_gripper.py gripper=franka_hand ``
-
-
+(TODO: add instructions for polymetis-local + changes to enable server)
+Note: This will take a long time to populate (few minutes), be patient.
 
 Need to also install dm_control (latest verison) and dm_robotics package to
 use the IK solver
 
 ``pip install dm-robotics-moma``
 
-Also when installing on NUC to get server running conda commands don't work,
-go through local server install process
+Also when installing on NUC, conda commands don't work. Go through local server install process.
 
-# Start server
-Note that you should add the iris_robots repo to the python
-path of whichever machine you're using. For example
+Additional packages also needed (TODO: put these in a yaml file):
+gym
+OpenCV
+pygame
+ipdb
+absl
+
+After installation, add the directory to the PYTHONPATH:
 
 ```
 export PYTHONPATH=$PYTHONPATH:~/iris_robots/
 ```
 
-First you must start a server to communicate with the robot
-on the NUC. Thankfully, once you go through the **local** polymetis
-instruction cycle on the NUC, running the server should be straight forward.
-Simply start a tmux session and run the following commands
+## Using the interface
+The RobotEnv is a OpenAI gym-style interface with the polymetis stack under the hood.
+If running on NUC itself, FrankaRobot will be instantiated. Otherwise, the RobotInterface
+will be used. The documentation assumes the use of `polymetis-local`.
+
+### Step 1: Start a server.
+First, start a server to communicate with the robot
+on the NUC. Note, this requires a local installation of polymetis.
 
 ```
+tmux new-session
 sudo pkill -9 run_server
 conda activate polymetis-local
 launch_robot.py robot_client=franka_hardware robot_client.executable_cfg.robot_ip=172.16.0.2
 ```
 
-If doing an overnight run, then you'll want to start
-a persistent server bash script
+If doing an overnight run, start a persistent server:
 ```
+tmux new-session
 sudo pkill -9 run_server
 conda activate polymetis-local
-cd ~/fairo/polymetis/polymetis/python/scripts/
-bash persist_server.sh
+bash ~/fairo/polymetis/polymetis/python/scripts/persist_server.sh
 ```
 
-Then create a new screen within tmux (CTRL + C) and cycle to it (CTRL + N),
-and run the following command to start the robotiq gripper. You might get an error
-that the command was rejected and the gripper is not activated, but if the gripper moved
-try the command again and it should work. The terminal should prompt that the 
-robotiq gripper is activated
+### Step 2: Start the gripper.
+Then, create [a new window in tmux](https://tmuxcheatsheet.com/)
+and activate the gripper. The terminal should prompt that the 
+robotiq gripper is activated. If you get an error, try again :)
 ```
 sudo chmod a+rw /dev/ttyUSB0
 conda activate polymetis-local
-launch_gripper.py gripper=robotiq_2f gripper.comport=/dev/ttyUSB0
+~iris_robots/launch_gripper.py gripper=robotiq_2f gripper.comport=/dev/ttyUSB0
 ```
 
-Finally, create a new screen and run the flask server, which communicates between
-the nuc / workstation. Note you ONLY need this if you're running on a workstation,
-otherwise pass in the ip address as None to the robot env when running on the NUC.
+### (Required for training) Step 3: Start the flask server.
+Create a new window and run the flask server, which communicates between
+the nuc / workstation. NOTE: this is needed only if you're training the models on a separate machine (for example, workstation).
 ```
 conda activate polymetis-local
 python ~/iris_robots/run_server.py
@@ -105,12 +84,15 @@ And the constants used for all of this are here
  As for the server warning themselves, the warning for exceed the threshold of 
  force is logged here
 `fairo/polymetis/polymetis/src/polymetis_server.cpp`
+
+
 # Demo Collection
 The repo should already have the module/submodule structure created
 so run the demo recording script as a module
 ```
 python -m iris_robots.record_demos
 ```
+
 # Error FAQ
 If when running the server, you see the following or similar error
 ```
@@ -160,10 +142,3 @@ Kill the tmux session and restart. Otherwise restart NUC
 If the robot enters user stop mode, the polymetis-server will crash unfortunately. If the robot
 needs a manual reset, make sure the training script is halted, then perform the manual reset
 and ensure that a new polymetis server is running before continuing.
-
-## TODO
-
-Make it so we can vary image size as a flag to robot-env
-
-clean up get observation, just return all info and remove
-viz and demo collection flags

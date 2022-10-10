@@ -14,8 +14,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from shutil import copyfile
-from iris_robots.utils import ReplayBuffer, set_seed_everywhere
-from iris_robots.controllers import XboxController
+from utils import ReplayBuffer, set_seed_everywhere
+from controllers import XboxController
 
 torch.backends.cudnn.benchmark = True
 
