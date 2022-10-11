@@ -60,7 +60,7 @@ class Workspace(object):
 
     def record_gif(self, imgs, gif_log_path):
         """Saves a set of images as a gif (e.g., when you want a video of a demo)."""
-        imgs = [np.transpose(img, (1, 2, 0)) for img in imgs] # e.g. (3, 100, 100) -> (100, 100, 3)
+        # imgs = [np.transpose(img, (1, 2, 0)) for img in imgs] # e.g. (3, 100, 100) -> (100, 100, 3)
         imageio.mimsave(gif_log_path, imgs, fps=self.env.hz)
 
     def single_demo(self, episode_num):
@@ -144,6 +144,6 @@ class Workspace(object):
 
 if __name__ == '__main__':
     base_dir = Path('/home/panda5/franka_demos/franka_demos')
-    work_dir = base_dir / 'cube_pickup'
+    work_dir = base_dir / 'cube_pickup_test'
     workspace = Workspace(work_dir=work_dir)
     workspace.run()

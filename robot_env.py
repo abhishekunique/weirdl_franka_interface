@@ -90,8 +90,8 @@ class RobotEnv(gym.Env):
 
         # final observation space configuration
         env_obs_spaces = {
-            'hand_img_obs': Box(0, 255, (3, 100, 100), np.uint8),
-            'third_person_img_obs': Box(0, 255, (3, 100, 100), np.uint8),
+            'hand_img_obs': Box(0, 255, (100, 100, 3), np.uint8),
+            'third_person_img_obs': Box(0, 255, (100, 100, 3), np.uint8),
             'lowdim_ee': self.ee_space,
             'lowdim_qpos': self.qpos_space,
         }
@@ -285,8 +285,8 @@ class RobotEnv(gym.Env):
         current_images = self.get_images()
 
         # set images
-        obs_first = current_images[0]['array'].transpose(2, 0, 1)
-        obs_third = current_images[1]['array'].transpose(2, 0, 1)
+        obs_first = current_images[0]['array']
+        obs_third = current_images[1]['array']
         # set gripper width
         gripper_width = current_state['current_pose'][-1:]
         # compute and normalize ee/qpos state
@@ -314,7 +314,8 @@ class RobotEnv(gym.Env):
         return obs_dict
 
     def render(self, mode=None):
-        if mode == 'video':
+        # TODO: update rendering to use height, width (for high quality evaluation rendering)
+        if mode == 'rgb_array':
             image_obs = self.get_images()
             obs = np.concatenate([image_obs[0]['array'],
                                   image_obs[1]['array']], axis=0)

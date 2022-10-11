@@ -7,7 +7,6 @@ from real_robot_ik.robot_ik_solver import RobotIKSolver
 # utility specific imports
 from transformations import euler_to_quat, quat_to_euler
 from terminal_utils import run_terminal_command
-import numpy as np
 import torch
 import time
 import os
