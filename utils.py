@@ -14,17 +14,16 @@ def weight_init(m):
         if hasattr(m.bias, 'data'):
             m.bias.data.fill_(0.0)
 
-
 class ReplayBuffer(object):
     """Buffer to store environment transitions."""
     def __init__(self, observation_space, action_space, capacity):
         self.capacity = capacity
         self.observations = {}
         self.next_observations = {}
-        for key, obs_space in observation_space:
-            self.observations[key] = np.empty((capacity, obs_space.shape), dtype=obs_space.dtype)
-            self.next_observations[key] = np.empty((capacity, obs_space.shape), dtype=obs_space.dtype)
-        self.actions = np.empty((capacity, *(action_space.shape)), dtype=action_space.dtype)
+        for key, obs_space in observation_space.items():
+            self.observations[key] = np.empty((capacity, *obs_space.shape), dtype=obs_space.dtype)
+            self.next_observations[key] = np.empty((capacity, *obs_space.shape), dtype=obs_space.dtype)
+        self.actions = np.empty((capacity, *action_space.shape), dtype=action_space.dtype)
         self.rewards = np.empty((capacity, 1), dtype=np.float32)
         self.dones = np.empty((capacity, 1), dtype=bool)
 
@@ -32,7 +31,6 @@ class ReplayBuffer(object):
         self.full = False
 
     def __len__(self):
-        """ Moo Jin: Note that this definition is correct. There is no need to add +1 to self.idx. """
         return self.capacity if self.full else self.idx
 
     def add(self,
@@ -56,9 +54,9 @@ class ReplayBuffer(object):
     def save(self, directory):
         total_steps = len(self)
         save_dict = {}
-        for key, val in self.observations:
+        for key, val in self.observations.items():
             save_dict[key] = val[:total_steps]
-        for key, val in self.next_observations:
+        for key, val in self.next_observations.items():
             save_dict[f'next_{key}'] = val[:total_steps]
         save_dict['actions'] = self.actions[:total_steps]
         save_dict['rewards'] = self.rewards[:total_steps]

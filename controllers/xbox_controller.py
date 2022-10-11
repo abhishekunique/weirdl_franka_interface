@@ -25,9 +25,9 @@ class XboxController(object):
 
 	def _process_toggle(self, toggle):
 		if toggle:
-			self.gripper_state = 1
-		else:
 			self.gripper_state = -1
+		else:
+			self.gripper_state = 1
 
 	def get_info(self):
 		pygame.event.get()

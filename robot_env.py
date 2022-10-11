@@ -135,7 +135,7 @@ class RobotEnv(gym.Env):
         obs = self.get_observation()
 
         # reward defaults to 0., unless a goal is specified
-        reward = -np.linalg.norm(obs['state'] - self.goal_state) if self._goal_state is not None else 0.
+        reward = -np.linalg.norm(obs['lowdim_ee'] - self.goal_state) if self._goal_state is not None else 0.
         self._curr_path_length += 1
         done = False
         if self._max_path_length is not None and self._curr_path_length >= self._max_path_length:
@@ -160,10 +160,10 @@ class RobotEnv(gym.Env):
 
     def reset_gripper(self):
         self._robot.update_gripper(0)
-        
+
     def reset(self):
         self._curr_path_length = 0
-        self._robot.update_gripper(0)
+        self.reset_gripper()
         self._robot.update_joints(self._reset_joint_qpos)
 
         # fix default angle at first joint reset
@@ -317,7 +317,7 @@ class RobotEnv(gym.Env):
         if mode == 'video':
             image_obs = self.get_images()
             obs = np.concatenate([image_obs[0]['array'],
-                                  image_obs[0]['array']], axis=0)
+                                  image_obs[1]['array']], axis=0)
             return obs
         else:
             return self.get_observation()
