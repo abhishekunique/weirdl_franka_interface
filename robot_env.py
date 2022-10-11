@@ -283,10 +283,10 @@ class RobotEnv(gym.Env):
         # get state and images
         current_state = self.get_state()
         current_images = self.get_images()
-        
+
         # set images
-        obs_first = current_images[0]['array']
-        obs_third = current_images[1]['array']
+        obs_first = current_images[0]['array'].transpose(2, 0, 1)
+        obs_third = current_images[1]['array'].transpose(2, 0, 1)
         # set gripper width
         gripper_width = current_state['current_pose'][-1:]
         # compute and normalize ee/qpos state
@@ -324,7 +324,7 @@ class RobotEnv(gym.Env):
 
     def is_robot_reset(self, epsilon=0.1):
         curr_joints = self._robot.get_joint_positions()
-        joint_dist = np.linalg.norm(curr_joints - self.reset_joints)
+        joint_dist = np.linalg.norm(curr_joints - self.reset_joint_qpos)
         return joint_dist < epsilon
 
     @property
