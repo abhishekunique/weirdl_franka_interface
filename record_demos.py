@@ -3,6 +3,7 @@ import imageio
 import math
 import numpy as np
 import os
+import sys
 import pickle as pkl
 import gzip
 from pathlib import Path
@@ -42,6 +43,9 @@ class Workspace(object):
             user_input = input(f"A demo file already exists. Continue appending to it? (y) or (n): ")
             if user_input == 'y':
                 continue_collection = True
+                print('Continuing collection')
+            else:
+                print('Overwriting the original data')
 
         if continue_collection:
             with gzip.open(self.rb_pkl, "rb") as f:
@@ -144,6 +148,6 @@ class Workspace(object):
 
 if __name__ == '__main__':
     base_dir = Path('/home/panda5/franka_demos/franka_demos')
-    work_dir = base_dir / 'cube_pickup_test'
+    work_dir = base_dir / sys.argv[1]
     workspace = Workspace(work_dir=work_dir)
     workspace.run()
