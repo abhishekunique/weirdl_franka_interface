@@ -27,14 +27,14 @@ class Workspace(object):
 
         # initialize robot environment
         self.env = RobotEnv(hz=10,
-                            ip_address=None,
+                            ip_address='172.24.68.68',
                             randomize_ee_on_reset=True,
                             pause_after_reset=True,
                             hand_centric_view=True,
                             third_person_view=True,
                             qpos=True,
                             ee_pos=True,
-                            local_cameras=True)
+                            local_cameras=False)
         self.max_length = 100
         self.controller = XboxController(DoF=3)
 
