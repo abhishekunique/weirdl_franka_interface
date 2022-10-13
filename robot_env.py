@@ -274,7 +274,7 @@ class RobotEnv(gym.Env):
 
     def _randomize_reset_pos(self):
         '''takes random action along x-y plane, no change to z-axis / gripper'''
-        random_vec = np.random.uniform(-0.5, 0.5, (2,))
+        random_vec = np.random.uniform(-0.2, 0.2, (2,))
         act_delta = np.concatenate([random_vec, np.zeros((2,))])
         for _ in range(20):
             self.step(act_delta)
