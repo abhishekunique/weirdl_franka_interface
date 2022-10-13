@@ -59,7 +59,7 @@ robotiq gripper is activated. If you get an error, try again :)
 ```
 sudo chmod a+rw /dev/ttyUSB0
 conda activate polymetis-local
-~iris_robots/launch_gripper.py gripper=robotiq_2f gripper.comport=/dev/ttyUSB0
+launch_gripper.py gripper=robotiq_2f gripper.comport=/dev/ttyUSB0
 ```
 
 ### (Required for training) Step 3: Start the flask server.
