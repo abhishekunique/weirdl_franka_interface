@@ -315,7 +315,7 @@ class RobotEnv(gym.Env):
 
     def render(self, mode=None):
         # TODO: update rendering to use height, width (for high quality evaluation rendering)
-        if mode == 'rgb_array':
+        if mode == 'video':
             image_obs = self.get_images()
             obs = np.concatenate([image_obs[0]['array'],
                                   image_obs[1]['array']], axis=0)
