@@ -135,7 +135,7 @@ class RobotEnv(gym.Env):
         obs = self.get_observation()
 
         # reward defaults to 0., unless a goal is specified
-        reward = -np.linalg.norm(obs['lowdim_ee'] - self.goal_state) if self._goal_state is not None else 0.
+        reward = -np.linalg.norm(obs['lowdim_ee'] - self._goal_state) if self._goal_state is not None else 0.
         self._curr_path_length += 1
         done = False
         if self._max_path_length is not None and self._curr_path_length >= self._max_path_length:
