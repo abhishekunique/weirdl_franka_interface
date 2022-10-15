@@ -164,7 +164,10 @@ class RobotEnv(gym.Env):
     def reset(self):
         self._curr_path_length = 0
         self.reset_gripper()
-        self._robot.update_joints(self._reset_joint_qpos)
+        for _ in range(5):
+            self._robot.update_joints(self._reset_joint_qpos)
+            if self.is_robot_reset():
+                break
 
         # fix default angle at first joint reset
         if self._episode_count == 0:                              
@@ -325,7 +328,7 @@ class RobotEnv(gym.Env):
 
     def is_robot_reset(self, epsilon=0.1):
         curr_joints = self._robot.get_joint_positions()
-        joint_dist = np.linalg.norm(curr_joints - self.reset_joint_qpos)
+        joint_dist = np.linalg.norm(curr_joints - self._reset_joint_qpos)
         return joint_dist < epsilon
 
     @property
