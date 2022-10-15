@@ -168,6 +168,8 @@ class RobotEnv(gym.Env):
             self._robot.update_joints(self._reset_joint_qpos)
             if self.is_robot_reset():
                 break
+            else:
+                print('reset failed, trying again')
 
         # fix default angle at first joint reset
         if self._episode_count == 0:                              
