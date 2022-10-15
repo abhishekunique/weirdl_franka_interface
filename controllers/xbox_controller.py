@@ -79,13 +79,15 @@ if __name__ == "__main__":
 
 	controller = XboxController(DoF=3)
 	print(f'init env')
-	env = RobotEnv(local_cameras=True)
+	default_ip_address = '172.24.68.68'
+	env = RobotEnv(ip_address=default_ip_address,
+				   goal_state='left_open')
 
 	print(f'reset env')
 	env.reset()
 
-	max_steps = 10000
-	for _ in range(max_steps):
-		obs = env.get_state()
+	for _ in range(1000000000):
 		action = controller.get_action()
-		env.step(action)
+		print(action)
+		o, r, d, info = env.step(action)
+		print(o['lowdim_ee'], r)
