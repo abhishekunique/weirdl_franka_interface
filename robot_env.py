@@ -50,6 +50,7 @@ class RobotEnv(gym.Env):
 
         self._episode_count = 0
         self._max_path_length = max_path_length
+        self._curr_path_length = 0
 
         # reward config, relevant only for state only experiments
         self._goal_state = None
@@ -191,7 +192,7 @@ class RobotEnv(gym.Env):
                               'angle': self._robot.get_ee_angle(),
                               'gripper': 0}
 
-        self._curr_path_length = 0                              
+        self._curr_path_length = 0
         self._episode_count += 1
 
         return self.get_observation()
