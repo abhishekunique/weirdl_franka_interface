@@ -162,7 +162,6 @@ class RobotEnv(gym.Env):
         self._robot.update_gripper(0)
 
     def reset(self):
-        self._curr_path_length = 0
         self.reset_gripper()
         for _ in range(5):
             self._robot.update_joints(self._reset_joint_qpos)
@@ -191,6 +190,8 @@ class RobotEnv(gym.Env):
         self._desired_pose = {'position': self._robot.get_ee_pos(),
                               'angle': self._robot.get_ee_angle(),
                               'gripper': 0}
+
+        self._curr_path_length = 0                              
         self._episode_count += 1
 
         return self.get_observation()
@@ -281,7 +282,7 @@ class RobotEnv(gym.Env):
         '''takes random action along x-y plane, no change to z-axis / gripper'''
         random_vec = np.random.uniform(-0.2, 0.2, (2,))
         act_delta = np.concatenate([random_vec, np.zeros((2,))])
-        for _ in range(20):
+        for _ in range(10):
             self.step(act_delta)
 
     def get_observation(self):
