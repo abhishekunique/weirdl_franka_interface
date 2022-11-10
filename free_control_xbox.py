@@ -1,13 +1,5 @@
 from robot_env import RobotEnv
-import imageio
-import math
 import numpy as np
-import os
-import sys
-import pickle as pkl
-import gzip
-from pathlib import Path
-from utils import ReplayBuffer
 from controllers import XboxController
 
 class Workspace(object):
@@ -16,8 +8,8 @@ class Workspace(object):
         # initialize robot environment
         self.env = RobotEnv(hz=10,
                             ip_address='172.16.0.10',
-                            randomize_ee_on_reset=True,
-                            pause_after_reset=True,
+                            randomize_ee_on_reset=False,
+                            pause_after_reset=False,
                             hand_centric_view=True,
                             third_person_view=True,
                             qpos=True,
@@ -34,6 +26,7 @@ class Workspace(object):
     def run(self):
         self.env.reset()
         prev_action = np.zeros(4)
+        print('free controlling now')
         while True:
             # smoothen the action
             xbox_action = self.controller.get_action()

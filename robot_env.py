@@ -78,7 +78,7 @@ class RobotEnv(gym.Env):
         # EE position (x, y, z) + gripper width
         self.ee_space = Box(
             np.array([0.4, -0.18, 0.16, 0.0045]),
-            np.array([0.7, 0.17, 0.3, 0.085]),
+            np.array([0.7, 0.17, 0.4, 0.085]),
         )
         # joint limits + gripper
         self._jointmin = np.array([-2.8973, -1.7628, -2.8973, -3.0718, -2.8973, -0.0175, -2.8973, 0.0045], dtype=np.float32)
