@@ -38,10 +38,10 @@ class RobotEnv(gym.Env):
                  # use local cameras, else use images from NUC
                  local_cameras=False):
 
-        # Initialize Gym Environment
+        # initialize gym environment
         super().__init__()
 
-        # Physics
+        # physics
         self.use_desired_pose = True
         self.max_lin_vel = 0.1
         self.max_rot_vel = 0.5
@@ -118,6 +118,8 @@ class RobotEnv(gym.Env):
         if self._use_local_cameras:
            self._camera_reader = MultiCameraWrapper()
 
+        self._hook_safety = True
+
     def step(self, action):
         start_time = time.time()
 
@@ -126,7 +128,8 @@ class RobotEnv(gym.Env):
 
         pos_action, angle_action, gripper = self._format_action(action)
         lin_vel, rot_vel = self._limit_velocity(pos_action, angle_action)
-        desired_pos = self._curr_pos + lin_vel
+        # clipping + any safety corrections; only for 3DoF control
+        desired_pos, gripper = self._get_valid_pos_and_gripper(self._curr_pos + lin_vel, gripper)
         desired_angle = add_angles(rot_vel, self._curr_angle)
         self._update_robot(desired_pos, desired_angle, gripper)
 
@@ -145,12 +148,14 @@ class RobotEnv(gym.Env):
 
     def normalize_ee_obs(self, obs):
         """Normalizes low-dim obs between [-1,1]."""
-        # The formula to do this is
         # x_new = 2 * (x - min(x)) / (max(x) - min(x)) - 1
-        # x = (x_new + 1) * (max (x) - min(x)) / 2
+        # x = (x_new + 1) * (max (x) - min(x)) / 2 + min(x)
         # Source: https://stats.stackexchange.com/questions/178626/how-to-normalize-data-between-1-and-1
         normalized_obs = 2 * (obs - self.ee_space.low) / (self.ee_space.high - self.ee_space.low) - 1
         return normalized_obs
+
+    def unnormalize_ee_obs(self, obs):
+        return (obs + 1) * (self.ee_space.high - self.ee_space.low) / 2 + self.ee_space.low
 
     def normalize_qpos(self, qpos):
         """Normalizes qpos between [-1,1]."""
@@ -163,6 +168,20 @@ class RobotEnv(gym.Env):
         self._robot.update_gripper(0)
 
     def reset(self):
+        # to move safely, always move up to the highest positions before resetting joints
+        if self._hook_safety and self._episode_count > 0:
+            cur_pos = self.normalize_ee_obs(np.concatenate([self._desired_pose['position'], [0.]]))[:3]
+
+            # if inside the hook, push it back
+            while -0.04 <= cur_pos[0] <= 0.3 and 0.66 <= cur_pos[1] <= 0.75 and 0.78 <= cur_pos[2] <= 0.98:
+                self.step(np.array([-0.2, 0., 0., -1.]))
+                cur_pos = self.normalize_ee_obs(np.concatenate([self._desired_pose['position'], [0.]]))[:3]
+
+            # push to the left, till its clear of the hook
+            while cur_pos[1] >= 0.10:
+                self.step(np.array([0.0, -0.2, 0., 1.]))
+                cur_pos = self.normalize_ee_obs(np.concatenate([self._desired_pose['position'], [0.]]))[:3]
+
         self.reset_gripper()
         for _ in range(5):
             self._robot.update_joints(self._reset_joint_qpos)
@@ -178,7 +197,7 @@ class RobotEnv(gym.Env):
         if self._randomize_ee_on_reset:
             self._desired_pose = {'position': self._robot.get_ee_pos(),
                                   'angle': self._robot.get_ee_angle(),
-                                  'gripper': 0}
+                                  'gripper': 1}
             self._randomize_reset_pos()
             time.sleep(1)
 
@@ -190,7 +209,7 @@ class RobotEnv(gym.Env):
         # initialize desired pose correctly for env.step
         self._desired_pose = {'position': self._robot.get_ee_pos(),
                               'angle': self._robot.get_ee_angle(),
-                              'gripper': 0}
+                              'gripper': 1}
 
         self._curr_path_length = 0
         self._episode_count += 1
@@ -217,20 +236,90 @@ class RobotEnv(gym.Env):
         lin_vel, rot_vel = lin_vel / self.hz, rot_vel / self.hz
         return lin_vel, rot_vel
 
-    def _update_robot(self, pos, angle, gripper, clip=True):
-        """
-        input: the commanded position (this will be clipped)
-        Feasible position (based on forward kinematics) is tracked and used for updating,
-        but the real position is used in observation.
-        """
-        # clip commanded position to satisfy box constraints
-        if clip:
-            x_low, y_low, z_low, _ = self.ee_space.low
-            x_high, y_high, z_high, _ = self.ee_space.high
-            pos[0] = pos[0].clip(x_low, x_high) # new x
-            pos[1] = pos[1].clip(y_low, y_high) # new y
-            pos[2] = pos[2].clip(z_low, z_high) # new z
+    def _get_valid_pos_and_gripper(self, pos, gripper):
+        '''To avoid situations where robot can break the object / burn out joints,
+        allowing us to specify (x, y, z, gripper) where the robot cannot enter. Gripper is included
+        because (x, y, z) is different when gripper is open/closed.
 
+        There are two ways to do this: (a) reject action and maintain current pose or (b) project back
+        to valid space. Rejecting action works, but it might get stuck inside the box if no action can
+        take it outside. Projection is a hard problem, as it is a non-convex set :(, but we can follow
+        some rough heuristics.'''
+
+        # clip commanded position to satisfy box constraints
+        x_low, y_low, z_low, _ = self.ee_space.low
+        x_high, y_high, z_high, _ = self.ee_space.high
+        pos[0] = pos[0].clip(x_low, x_high) # new x
+        pos[1] = pos[1].clip(y_low, y_high) # new y
+        pos[2] = pos[2].clip(z_low, z_high) # new z
+
+        '''Prevents robot from entering unsafe territory.
+
+        Unsafe cube is specified as a set of constraints:
+        [(x_low, y_low, z_low), (x_high, y_high, z_high)]. Whenever, (x, y, z) falls into 
+        any of the boxes, constrained is violated. When specifying one-sided constraint,
+        use 2.5/-2.5 as the other limit.
+
+        Assumption: you can only violate _exactly_ one constraint at a time.'''
+        if self._hook_safety:
+            MAX_LIM = 2.5
+            # constraints are computed for normalized observation
+            cur_pos = self.normalize_ee_obs(np.concatenate([pos, [0.]]))[:3]
+            assert np.linalg.norm(pos - self.unnormalize_ee_obs(np.concatenate([cur_pos, [0.]]))[:3] <= 1e-6) 
+
+            unsafe_box = []
+
+            # DO NOT open gripper if passing through the hook
+            if 0.08 <= cur_pos[0] <= 0.3 and 0.66 <= cur_pos[1] <= 0.75 and 0.78 <= cur_pos[2] <= 0.98:
+                gripper = -1
+
+            # open gripper
+            if gripper >= -0.8:
+                # when height is high enough
+                unsafe_box.append(np.array([[-0.22, 0.14, 0.02], [0.36, MAX_LIM, 0.96]]))
+                # wrist camera hits the hook
+                unsafe_box.append(np.array([[-0.66, 0.14, -MAX_LIM], [0.58, MAX_LIM, 0.02]]))
+            # gripper closed
+            else:
+                # tunnel for cloth draping
+                unsafe_box.append(np.array([[-0.22, 0.14, 0.78], [0.36, 0.66, MAX_LIM]]))
+                unsafe_box.append(np.array([[-0.22, 0.75, 0.78], [0.36, MAX_LIM, MAX_LIM]]))
+                # height is high enough not to risk wrist camera hitting the hook, so can come closer
+                unsafe_box.append(np.array([[-0.22, 0.14, 0.05], [0.36, MAX_LIM, 0.78]]))
+                # wrist camera hits the hook
+                unsafe_box.append(np.array([[-0.66, 0.14, -MAX_LIM], [0.58, MAX_LIM, 0.05]]))
+
+            def _violate(pos):
+                for idx, constraint in enumerate(unsafe_box):
+                    if np.min(np.concatenate([pos - constraint[0], constraint[1] - pos])) >= 0.:
+                        return True
+                return False
+
+            '''It is possible that it is still violating the constraint after the first projection.
+            Keep trying different axes till it is not violating ANY constraint.'''
+            for constraint in unsafe_box:
+                slacks = np.concatenate([cur_pos - constraint[0], constraint[1] - cur_pos])
+                if np.min(slacks) >= 0.:
+                    print('too close to the hook!')
+                    num_tries = 0
+                    while _violate(cur_pos) and num_tries < 3:
+                        # reset pos before trying another dimension
+                        cur_pos = self.normalize_ee_obs(np.concatenate([pos, [0.]]))[:3]
+                        min_idx = np.argmin(slacks)
+                        if min_idx // 3:
+                            cur_pos[min_idx % 3] +=  (slacks[min_idx] + 1e-2)
+                        else:
+                            cur_pos[min_idx % 3] -= (slacks[min_idx] + 1e-2)
+                        slacks[min_idx % 3] = slacks[min_idx % 3 + 3] = np.inf
+                        num_tries += 1
+                    return self.unnormalize_ee_obs(np.concatenate([cur_pos, [0.]]))[:3], gripper
+
+            return pos, gripper
+
+    def _update_robot(self, pos, angle, gripper):
+        """input: the commanded position (clipped before).
+        feasible position (based on forward kinematics) is tracked and used for updating,
+        but the real position is used in observation."""
         feasible_pos, feasible_angle = self._robot.update_pose(pos, angle)
         self._robot.update_gripper(gripper)
         self._desired_pose = {'position': feasible_pos, 

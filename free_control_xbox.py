@@ -32,9 +32,8 @@ class Workspace(object):
             xbox_action = self.controller.get_action()
             smoothed_pos_delta = self.momentum(xbox_action[:3], prev_action[:3])
             action = np.append(smoothed_pos_delta, xbox_action[3]) # concatenate with gripper command
-
-            _, _, _, _ = self.env.step(action)
-
+            obs, _, _, _ = self.env.step(action)
+            print(obs['lowdim_ee'])
             prev_action = action
 
 if __name__ == '__main__':

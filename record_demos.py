@@ -35,7 +35,7 @@ class Workspace(object):
                             qpos=True,
                             ee_pos=True,
                             local_cameras=False)
-        self.max_length = 100
+        self.max_length = 200
         self.controller = XboxController(DoF=3)
 
         continue_collection = False
