@@ -18,16 +18,23 @@ class XboxController(object):
 		self.pos_gain = pos_gain
 		self.orien_gain = orien_gain
 		self.threshold = 0.1
-		
+
 		# Save Toggle
 		self.button_resetted = True
 		self.gripper_state = 0
+		self.terminate_trajectory_action = 0
 
 	def _process_toggle(self, toggle):
 		if toggle:
 			self.gripper_state = -1
 		else:
 			self.gripper_state = 1
+
+	def _process_exit(self, exit):
+		if exit:
+			self.terminate_trajectory_action = 1
+		else:
+			self.terminate_trajectory_action = 0
 
 	def get_info(self):
 		pygame.event.get()
@@ -61,6 +68,7 @@ class XboxController(object):
 		# Process Gripper Action (A button)
 		# Close/Open depending on whether this is pressed down
 		self._process_toggle(self.joystick.get_button(0))
+		self._process_exit(self.joystick.get_button(2))
 
 		# Process Pose Action
 		pose_action = np.array([x, y, z, yaw, pitch, roll], dtype=np.float32)[:self.DoF]
@@ -70,7 +78,7 @@ class XboxController(object):
 		# Unsure if this does anything in terms of position gain
 		pose_action[:3] * self.pos_gain
 		pose_action[3:6] * self.orien_gain
-		return np.append(pose_action, [self.gripper_state])
+		return np.append(pose_action, [self.gripper_state, self.terminate_trajectory_action])
 
 
 if __name__ == "__main__":
@@ -79,7 +87,7 @@ if __name__ == "__main__":
 
 	controller = XboxController(DoF=3)
 	print(f'init env')
-	default_ip_address = '172.24.68.68'
+	default_ip_address = '172.16.0.10'
 	env = RobotEnv(ip_address=default_ip_address,
 				   goal_state='left_open')
 
