@@ -5,8 +5,10 @@ from controllers import XboxController
 class Workspace(object):
     def __init__(self):
 
+        self.DoF = 4
         # initialize robot environment
         self.env = RobotEnv(hz=10,
+                            DoF=self.DoF,
                             ip_address='172.16.0.10',
                             randomize_ee_on_reset=False,
                             pause_after_reset=False,
@@ -15,7 +17,7 @@ class Workspace(object):
                             qpos=True,
                             ee_pos=True,
                             local_cameras=False)
-        self.controller = XboxController(DoF=3)
+        self.controller = XboxController(DoF=self.DoF)
 
     def momentum(self, delta, prev_delta):
         """Modifies action delta so that there is momentum (and thus less jerky movements)."""
@@ -25,13 +27,13 @@ class Workspace(object):
 
     def run(self):
         self.env.reset()
-        prev_action = np.zeros(4)
+        prev_action = np.zeros(self.DoF + 1)
         print('free controlling now')
         while True:
             # smoothen the action
             xbox_action = self.controller.get_action()
-            smoothed_pos_delta = self.momentum(xbox_action[:3], prev_action[:3])
-            action = np.append(smoothed_pos_delta, xbox_action[3]) # concatenate with gripper command
+            smoothed_pos_delta = self.momentum(xbox_action[:self.DoF], prev_action[:self.DoF])
+            action = np.append(smoothed_pos_delta, xbox_action[self.DoF]) # concatenate with gripper command
             obs, _, _, _ = self.env.step(action)
             print(obs['lowdim_ee'])
             prev_action = action

@@ -20,6 +20,7 @@ class RobotEnv(gym.Env):
     def __init__(self,
                  # control frequency
                  hz=10,
+                 DoF=3,
                  # randomize arm position on reset  
                  randomize_ee_on_reset=True,
                  # allows user to pause to reset reset of the environment
@@ -45,7 +46,7 @@ class RobotEnv(gym.Env):
         self.use_desired_pose = True
         self.max_lin_vel = 0.1
         self.max_rot_vel = 0.5
-        self.DoF = 3
+        self.DoF = DoF
         self.hz = hz
 
         self._episode_count = 0
@@ -76,10 +77,16 @@ class RobotEnv(gym.Env):
             np.array([1, 1, 1, 1]), # dx_high, dy_high, dz_high, dgripper_high
         )
         # EE position (x, y, z) + gripper width
-        self.ee_space = Box(
-            np.array([0.4, -0.18, 0.16, 0.0045]),
-            np.array([0.7, 0.17, 0.4, 0.085]),
-        )
+        if self.DoF == 3:
+            self.ee_space = Box(
+                np.array([0.38, -0.15, 0.16, 0.0045]),
+                np.array([0.72, 0.19, 0.28, 0.085]),
+            )
+        elif self.DoF == 4:
+            self.ee_space = Box(
+                np.array([0.38, -0.15, 0.16, -1.57, 0.0045]),
+                np.array([0.72, 0.19, 0.28, 0.0, 0.085]),
+            )
         # joint limits + gripper
         self._jointmin = np.array([-2.8973, -1.7628, -2.8973, -3.0718, -2.8973, -0.0175, -2.8973, 0.0045], dtype=np.float32)
         self._jointmax = np.array([2.8973, 1.7628, 2.8973, -0.0698, 2.8973, 3.7525, 2.8973, 0.085], dtype=np.float32)
@@ -118,7 +125,7 @@ class RobotEnv(gym.Env):
         if self._use_local_cameras:
            self._camera_reader = MultiCameraWrapper()
 
-        self._hook_safety = True
+        self._hook_safety = False
 
     def step(self, action):
         start_time = time.time()
@@ -128,9 +135,11 @@ class RobotEnv(gym.Env):
 
         pos_action, angle_action, gripper = self._format_action(action)
         lin_vel, rot_vel = self._limit_velocity(pos_action, angle_action)
-        # clipping + any safety corrections; only for 3DoF control
+        # clipping + any safety corrections for position
         desired_pos, gripper = self._get_valid_pos_and_gripper(self._curr_pos + lin_vel, gripper)
         desired_angle = add_angles(rot_vel, self._curr_angle)
+        if self.DoF == 4:
+            desired_angle[2] = desired_angle[2].clip(self.ee_space.low[3], self.ee_space.high[3])
         self._update_robot(desired_pos, desired_angle, gripper)
 
         comp_time = time.time() - start_time
@@ -221,6 +230,8 @@ class RobotEnv(gym.Env):
         default_delta_angle = angle_diff(self._default_angle, self._curr_angle)
         if self.DoF == 3:
             delta_pos, delta_angle, gripper = action[:-1], default_delta_angle, action[-1]
+        elif self.DoF == 4:
+            delta_pos, delta_angle, gripper = action[:3], [default_delta_angle[0], default_delta_angle[1], action[3]], action[-1]
         elif self.DoF == 6:
             delta_pos, delta_angle, gripper = action[:3], action[3:6], action[-1]
         return np.array(delta_pos), np.array(delta_angle), gripper
@@ -247,8 +258,8 @@ class RobotEnv(gym.Env):
         some rough heuristics.'''
 
         # clip commanded position to satisfy box constraints
-        x_low, y_low, z_low, _ = self.ee_space.low
-        x_high, y_high, z_high, _ = self.ee_space.high
+        x_low, y_low, z_low = self.ee_space.low[:3]
+        x_high, y_high, z_high = self.ee_space.high[:3]
         pos[0] = pos[0].clip(x_low, x_high) # new x
         pos[1] = pos[1].clip(y_low, y_high) # new y
         pos[2] = pos[2].clip(z_low, z_high) # new z
@@ -314,7 +325,7 @@ class RobotEnv(gym.Env):
                         num_tries += 1
                     return self.unnormalize_ee_obs(np.concatenate([cur_pos, [0.]]))[:3], gripper
 
-            return pos, gripper
+        return pos, gripper
 
     def _update_robot(self, pos, angle, gripper):
         """input: the commanded position (clipped before).
@@ -386,7 +397,10 @@ class RobotEnv(gym.Env):
         # set gripper width
         gripper_width = current_state['current_pose'][-1:]
         # compute and normalize ee/qpos state
-        ee_pos = np.concatenate([current_state['current_pose'][:3], gripper_width])
+        if self.DoF == 3:
+            ee_pos = np.concatenate([current_state['current_pose'][:3], gripper_width])
+        elif self.DoF == 4:
+            ee_pos = np.concatenate([current_state['current_pose'][:3], current_state['current_pose'][5:6], gripper_width])
         qpos = np.concatenate([current_state['joint_positions'],  gripper_width])
         normalized_ee_pos = self.normalize_ee_obs(ee_pos)
         normalized_qpos = self.normalize_qpos(qpos)

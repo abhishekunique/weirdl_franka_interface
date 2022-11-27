@@ -33,7 +33,9 @@ class Workspace(object):
         self.backward_demo_dir = self.backward_dir / "demos.npz"
 
         # initialize robot environment
+        self.DoF = 3
         self.env = RobotEnv(hz=10,
+                            DoF=self.DoF,
                             ip_address='172.16.0.10',
                             randomize_ee_on_reset=True,
                             pause_after_reset=True,
@@ -43,7 +45,7 @@ class Workspace(object):
                             ee_pos=True,
                             local_cameras=False)
         self.max_length = 200
-        self.controller = XboxController(DoF=3)
+        self.controller = XboxController(DoF=self.DoF)
 
         continue_collection = False
         if os.path.exists(self.forward_pkl):
@@ -85,7 +87,7 @@ class Workspace(object):
         else:
             obs = self.env.get_observation()
 
-        prev_action = np.zeros(4)
+        prev_action = np.zeros(self.DoF + 1)
         done = False
 
         current_episode = list()
@@ -98,8 +100,8 @@ class Workspace(object):
 
             # smoothen the action
             xbox_action = self.controller.get_action()
-            smoothed_pos_delta = self.momentum(xbox_action[:3], prev_action[:3])
-            action = np.append(smoothed_pos_delta, xbox_action[3]) # concatenate with gripper command
+            smoothed_pos_delta = self.momentum(xbox_action[:self.DoF], prev_action[:self.DoF])
+            action = np.append(smoothed_pos_delta, xbox_action[self.DoF]) # concatenate with gripper command
 
             next_obs, reward, done, _ = self.env.step(action)
 
@@ -112,7 +114,7 @@ class Workspace(object):
             hand_imgs_for_gif.append(next_obs['hand_img_obs'])
             third_person_imgs_for_gif.append(next_obs['third_person_img_obs'])
 
-            if episode_step == self.max_length - 1 or xbox_action[4]:
+            if episode_step == self.max_length - 1 or xbox_action[self.DoF + 1]:
                 done = True
 
             episode_reward += reward
