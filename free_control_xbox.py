@@ -5,7 +5,7 @@ from controllers import XboxController
 class Workspace(object):
     def __init__(self):
 
-        self.DoF = 4
+        self.DoF = 3
         # initialize robot environment
         self.env = RobotEnv(hz=10,
                             DoF=self.DoF,
