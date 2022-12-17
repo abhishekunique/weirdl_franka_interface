@@ -44,7 +44,7 @@ class Workspace(object):
                             qpos=True,
                             ee_pos=True,
                             local_cameras=False)
-        self.max_length = 500
+        self.max_length = 300
         self.controller = XboxController(DoF=self.DoF)
 
         continue_collection = False
@@ -154,16 +154,18 @@ class Workspace(object):
                 print("Added to the backward demos. Current number of steps in the buffer:", len(self.backward_buffer))
             if user_input.startswith('d'): # discard episode
                 pass
-            if user_input.startswith('q'): # save episode and quit
+            if user_input.startswith('q'): # quit
                 break
             episode_num += 1
             reset_next_episode = user_input.endswith('j')
 
-        print('Saving demos and exporting buffer to pickle file...')
-        self.forward_buffer.save(self.forward_demo_dir)
+            print('saving numpy files')
+            self.forward_buffer.save(self.forward_demo_dir)
+            self.backward_buffer.save(self.backward_demo_dir)
+
+        print('Exporting buffer to pickle file...')
         with gzip.open(self.forward_pkl, 'wb') as f:
             pkl.dump(self.forward_buffer, f, protocol=pkl.HIGHEST_PROTOCOL)
-        self.backward_buffer.save(self.backward_demo_dir)
         with gzip.open(self.backward_pkl, 'wb') as f:
             pkl.dump(self.backward_buffer, f, protocol=pkl.HIGHEST_PROTOCOL)
 
