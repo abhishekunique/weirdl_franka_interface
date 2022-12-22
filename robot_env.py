@@ -79,7 +79,7 @@ class RobotEnv(gym.Env):
         # EE position (x, y, z) + gripper width
         if self.DoF == 3:
             self.ee_space = Box(
-                np.array([0.38, -0.25, 0.16, 0.0045]),
+                np.array([0.38, -0.25, 0.15, 0.00]),
                 np.array([0.70, 0.20, 0.28, 0.085]),
             )
         elif self.DoF == 4:
@@ -198,7 +198,7 @@ class RobotEnv(gym.Env):
             if self._bowl_safety:
                 # raise the gripper and then reset it
                 while cur_pos[2] <= 0.5:
-                    self.step(np.array([0.0, 0.0, 0.6, 1.]))
+                    self.step(np.array([0.0, 0.0, 1.0, 1.]))
                     cur_pos = self.normalize_ee_obs(np.concatenate([self._curr_pos, [0.]]))[:3]
 
         self.reset_gripper()

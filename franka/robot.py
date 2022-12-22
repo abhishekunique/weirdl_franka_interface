@@ -65,7 +65,7 @@ class FrankaRobot:
 
     def update_gripper(self, flag):
         if flag < 0:
-            desired_gripper = 0.005
+            desired_gripper = 0.00
         elif flag >= 0:
             desired_gripper = 0.085
         self._gripper.goto(width=desired_gripper, speed=0.1, force=1000)
