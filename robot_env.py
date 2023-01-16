@@ -61,9 +61,11 @@ class RobotEnv(gym.Env):
             self._goal_state = [1, 1, 1, -1]
 
         # resetting configuration
+        self._peg_insert = True
         self._randomize_ee_on_reset = randomize_ee_on_reset
         self._pause_after_reset = pause_after_reset
-        self._reset_joint_qpos = np.array([0, 0.115, 0, -2.257, 0.013, 2.257, 1.544])
+        self._gripper_angle = 0.1 if self._peg_insert else 1.544
+        self._reset_joint_qpos = np.array([0, 0.115, 0, -2.257, 0.013, 2.257, self._gripper_angle])
 
         # observation space config
         self._first_person = hand_centric_view
@@ -80,12 +82,13 @@ class RobotEnv(gym.Env):
         if self.DoF == 3:
             self.ee_space = Box(
                 np.array([0.38, -0.25, 0.15, 0.00]),
-                np.array([0.70, 0.20, 0.28, 0.085]),
+                np.array([0.70, 0.28, 0.35, 0.085]),
             )
         elif self.DoF == 4:
+            # EE position (x, y, z) + gripper width
             self.ee_space = Box(
-                np.array([0.38, -0.15, 0.16, -1.57, 0.0045]),
-                np.array([0.72, 0.19, 0.28, 0.0, 0.085]),
+                np.array([0.48, -0.12, 0.15, -1.57, 0.00]),
+                np.array([0.70, 0.28, 0.35, 0.0, 0.085]),
             )
 
         # joint limits + gripper
@@ -127,7 +130,7 @@ class RobotEnv(gym.Env):
            self._camera_reader = MultiCameraWrapper()
 
         self._hook_safety = False
-        self._bowl_safety = True
+        self._bowl_safety = False
         self._safety = self._hook_safety or self._bowl_safety
 
     def step(self, action):
@@ -434,8 +437,14 @@ class RobotEnv(gym.Env):
 
     def _randomize_reset_pos(self):
         '''takes random action along x-y plane, no change to z-axis / gripper'''
-        random_vec = np.random.uniform(-0.2, 0.2, (2,))
-        act_delta = np.concatenate([random_vec, np.zeros((2,))])
+        random_xy = np.random.uniform(-0.5, 0.5, (2,))
+        random_z = np.random.uniform(-0.2, 0.2, (1,))
+        if self.DoF == 4:
+            random_rot = np.random.uniform(-0.5, 0., (1,))
+            act_delta = np.concatenate([random_xy, random_z, random_rot, np.zeros((1,))])
+            print(random_xy, random_z, random_rot)
+        else:
+            act_delta = np.concatenate([random_xy, random_z, np.zeros((1,))])
         for _ in range(10):
             self.step(act_delta)
 

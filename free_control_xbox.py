@@ -5,12 +5,12 @@ from controllers import XboxController
 class Workspace(object):
     def __init__(self):
 
-        self.DoF = 3
+        self.DoF = 4
         # initialize robot environment
         self.env = RobotEnv(hz=10,
                             DoF=self.DoF,
                             ip_address='172.16.0.10',
-                            randomize_ee_on_reset=False,
+                            randomize_ee_on_reset=True,
                             pause_after_reset=False,
                             hand_centric_view=True,
                             third_person_view=True,
