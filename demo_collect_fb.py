@@ -33,7 +33,7 @@ class Workspace(object):
         self.backward_demo_dir = self.backward_dir / "demos.npz"
 
         # initialize robot environment
-        self.DoF = 3
+        self.DoF = 4
         self.env = RobotEnv(hz=10,
                             DoF=self.DoF,
                             ip_address='172.16.0.10',
@@ -44,7 +44,7 @@ class Workspace(object):
                             qpos=True,
                             ee_pos=True,
                             local_cameras=False)
-        self.max_length = 300
+        self.max_length = 200
         self.controller = XboxController(DoF=self.DoF)
 
         continue_collection = False
