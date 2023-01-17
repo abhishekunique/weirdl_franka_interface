@@ -442,7 +442,6 @@ class RobotEnv(gym.Env):
         if self.DoF == 4:
             random_rot = np.random.uniform(-0.5, 0., (1,))
             act_delta = np.concatenate([random_xy, random_z, random_rot, np.zeros((1,))])
-            print(random_xy, random_z, random_rot)
         else:
             act_delta = np.concatenate([random_xy, random_z, np.zeros((1,))])
         for _ in range(10):
