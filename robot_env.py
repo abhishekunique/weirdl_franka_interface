@@ -65,7 +65,7 @@ class RobotEnv(gym.Env):
         self._randomize_ee_on_reset = randomize_ee_on_reset
         self._pause_after_reset = pause_after_reset
         self._gripper_angle = 0.1 if self._peg_insert else 1.544
-        self._reset_joint_qpos = np.array([0, 0.115, 0, -2.257, 0.013, 2.257, self._gripper_angle])
+        self._reset_joint_qpos = np.array([0, 0.423, 0, -1.944, 0.013, 2.219, self._gripper_angle])
 
         # observation space config
         self._first_person = hand_centric_view
