@@ -2,25 +2,16 @@
 ## Adaptation of polymetis for Franka 
 
 ## Setup instructions
-If working on a workstation / separate machine from controller (NUC), make a conda env using `conda create -n polymetis python=3.8`
+We use the polymetis environment wrapper to work with our Franka robot, with the instructions to download found here: https://facebookresearch.github.io/fairo/polymetis/. We thank the authors for nice codebase / wrapper to work with!
 
-Install polymetis as `conda install -c pytorch -c fair-robotics -c aihabitat -c conda-forge polymetis`
-(TODO: add instructions for polymetis-local + changes to enable server)
-Note: This will take a long time to populate (few minutes), be patient.
+Our workflow assumes a controller computer. For our use case we used an intel NUC machine as recommended by the polymetis instructions. If working on a workstation / separate machine from controller (NUC), make a conda env using `conda create -n polymetis python=3.8` workflow.
+
+We recommend the local installation path option for polymetis has using conda forge caused us compilation issues.
 
 Need to also install dm_control (latest verison) and dm_robotics package to
 use the IK solver
 
 ``pip install dm-robotics-moma``
-
-Also when installing on NUC, conda commands don't work. Go through local server install process.
-
-Additional packages also needed (TODO: put these in a yaml file):
-gym
-OpenCV
-pygame
-ipdb
-absl
 
 After installation, add the directory to the PYTHONPATH:
 
@@ -94,6 +85,7 @@ python -m iris_robots.record_demos
 ```
 
 # Error FAQ
+## Mujoco Engine Error
 If when running the server, you see the following or similar error
 ```
 dm_control/mjcf/physics.py", line 495, in from_mjcf_model
@@ -130,7 +122,7 @@ to get around it uninstall then install earlier version of protobuf
 
 ## Cameras are not being detected
 If you are using local polymetis to control the robot, make sure you are not running a server.
-The server would have taken over the cameras and for security reasons the local env cannot use them.
+The server would have taken over the cameras and for security reasons the OS will not let the local env cannot use them.
 
 If no server is running and the cameras are still not detected, restart the NUC
 
