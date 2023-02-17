@@ -2,7 +2,12 @@
 ## Adaptation of polymetis for Franka 
 
 ## Setup instructions
+For all experiments we utilize a Franka Emika Panda research robot: https://www.franka.de/research. The only modification we made in terms of hardware
+is using a Robotiq 2F-85 gripper: https://robotiq.com/products/2f85-140-adaptive-robot-gripper, as we found the gripper with the Franka was prone
+to failure when running longer RL experiments (1 hour+)
+
 We use the polymetis environment wrapper to work with our Franka robot, with the instructions to download found here: https://facebookresearch.github.io/fairo/polymetis/. We thank the authors for nice codebase / wrapper to work with!
+
 
 Our workflow assumes a controller computer. For our use case we used an intel NUC machine as recommended by the polymetis instructions. If working on a workstation / separate machine from controller (NUC), make a conda env using `conda create -n polymetis python=3.8` workflow.
 
@@ -61,6 +66,50 @@ conda activate polymetis-local
 python ~/iris_robots/run_server.py
 ```
 
+# Demo Collection
+For demo collection, we utilize an Xbox One controller which is directly plugged into the NUC controller computer.
+You can find one [here](https://support.xbox.com/en-US/help/hardware-network/controller/xbox-one-wireless-controller). If you would like to get a sense of the commands, try running 
+```
+python free_xbox_control.py
+```
+You can also modify the robot_env to use either 4-DoF or 5-DoF control, with an optional degree of freedom in
+rotating the orientation of the gripper up to 180 degrees. The commands are
+```
+'A': Close gripper. Must be held to continue closing gripper, and once released the gripper will open
+'X': End demo collection episode early.
+'Left stick (right to left)' : Move end-effector along y-axis with a delta depending on how far the stick is moved
+'Left stick (upwards to downwards)' : Move end-effector along x-axis with a delta depending on how far the stick is moved
+'Right trigger': Move end-effector upwards along z-axis with a delta depending on how much the trigger is pressed
+'Left trigger': Move end-effector downwards along z-axis with a delta depending on how much the trigger is pressed
+'Right stick (right to left)': Rotate end-effector clockwise/counter-clockwise depending on which direction the stick is moved
+only used for 5 DoF control
+```
+
+The demo collection script used for the main experiments can be run by
+```
+python demo_collect_fb.py demos
+```
+
+Which will create a folder named 'demos' where all demo data and GIFs of data collection are stored.
+If a folder with the same name exists before, the script first prompts the user with the following text:
+```
+A demo file already exists. Continue appending to it? (y) or (n): 
+```
+
+Be careful that you do NOT enter n on your keyboard if you wish to avoid overwriting your demos!
+
+Afterwards demo collection will begin and you can control the robot with the Xbox controller for
+a limited number of timesteps, which we configured per task but which can be changed in the ```robot_env.py```
+file. If you wish to end the demo early, or you reach the end of the episode, data collection will stop and
+you will recieve the following prompt:
+
+``` Save current episode?: (f) for forward buffer, (b) for backward buffer and (d) to discard episode and (q) to save and quit: ```
+Enter either `f` or `b` depending on whether the demo you collected is for the forward / backward buffer as stated above. If you 
+would like another prompt which waits for you to start the next episode with a keyboard entry enter `fj` or `bj`. If you enter
+`d` or `dj` you will discard the demo either directly continuing into the start of collecting the next demo or pausing before continuing.
+
+If you do not enter either `f` or `b` then no demo will be saved. If you would like to save and quit you must enter `fq` or `bq`.
+
 # Notes on Server
 Running the launch robot command uses the yaml file at
 `/home/panda5/fairo/polymetis/polymetis/conf/launch_robot.yaml`
@@ -75,14 +124,6 @@ And the constants used for all of this are here
  As for the server warning themselves, the warning for exceed the threshold of 
  force is logged here
 `fairo/polymetis/polymetis/src/polymetis_server.cpp`
-
-
-# Demo Collection
-The repo should already have the module/submodule structure created
-so run the demo recording script as a module
-```
-python -m iris_robots.record_demos
-```
 
 # Error FAQ
 ## Mujoco Engine Error

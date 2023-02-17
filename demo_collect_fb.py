@@ -170,7 +170,7 @@ class Workspace(object):
             pkl.dump(self.backward_buffer, f, protocol=pkl.HIGHEST_PROTOCOL)
 
 if __name__ == '__main__':
-    base_dir = Path('/home/panda5/franka_demos/franka_demos')
+    base_dir = Path('/home/franka_demos/')
     work_dir = base_dir / sys.argv[1]
     workspace = Workspace(work_dir=work_dir)
     workspace.run()
