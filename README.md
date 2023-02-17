@@ -2,18 +2,18 @@
 ## Adaptation of polymetis for Franka 
 
 ## Setup instructions
-For all experiments we utilize a Franka Emika Panda research robot: https://www.franka.de/research. The only modification we made in terms of hardware
-is using a Robotiq 2F-85 gripper: https://robotiq.com/products/2f85-140-adaptive-robot-gripper, as we found the gripper with the Franka was prone
+For all experiments we utilize a [Franka Emika Panda research robot](https://www.franka.de/research). The only modification we made in terms of hardware
+is using a [Robotiq 2F-85 gripper](https://robotiq.com/products/2f85-140-adaptive-robot-gripper), as we found the gripper with the Franka was prone
 to failure when running longer RL experiments (1 hour+)
 
-We use the polymetis environment wrapper to work with our Franka robot, with the instructions to download found here: https://facebookresearch.github.io/fairo/polymetis/. We thank the authors for nice codebase / wrapper to work with!
+We use the polymetis environment wrapper to work with our Franka robot, with the instructions to download found [here](https://facebookresearch.github.io/fairo/polymetis/). We thank the authors for nice codebase / wrapper to work with!
 
 
-Our workflow assumes a controller computer. For our use case we used an intel NUC machine as recommended by the polymetis instructions. If working on a workstation / separate machine from controller (NUC), make a conda env using `conda create -n polymetis python=3.8` workflow.
+Our workflow assumes a controller computer. For our use case we used an intel NUC machine as recommended by the polymetis instructions. I
 
 We recommend the local installation path option for polymetis has using conda forge caused us compilation issues.
 
-Need to also install dm_control (latest verison) and dm_robotics package to
+As of this commit you will also need to also install dm_control (latest verison) and dm_robotics package to
 use the IK solver
 
 ``pip install dm-robotics-moma``
@@ -112,7 +112,7 @@ If you do not enter either `f` or `b` then no demo will be saved. If you would l
 
 # Notes on Server
 Running the launch robot command uses the yaml file at
-`/home/panda5/fairo/polymetis/polymetis/conf/launch_robot.yaml`
+`{$HOME}/fairo/polymetis/polymetis/conf/launch_robot.yaml`
 Also gives different options for choice of robot client.
 
 The file that determines the number of allowed automatic error recovery
@@ -169,7 +169,7 @@ If no server is running and the cameras are still not detected, restart the NUC
 
 ## Issue with Robotiq
 If the robotiq server results in this issue: https://github.com/facebookresearch/fairo/issues/1383
-Kill the tmux session and restart. Otherwise restart NUC
+Kill the tmux session and restart. Otherwise restart the NUC
 
 ## User stop mode
 If the robot enters user stop mode, the polymetis-server will crash unfortunately. If the robot
