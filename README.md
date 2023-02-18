@@ -4,7 +4,10 @@
 ## Setup instructions
 For all experiments we utilize a [Franka Emika Panda research robot](https://www.franka.de/research). The only modification we made in terms of hardware
 is using a [Robotiq 2F-85 gripper](https://robotiq.com/products/2f85-140-adaptive-robot-gripper), as we found the gripper with the Franka was prone
-to failure when running longer RL experiments (1 hour+)
+to failure when running longer RL experiments (1 hour+).
+
+Before continuing, ensure that your Franka is setup with it's joints unlocked and is in the 'Ready' state for recieving movement commands for a controller.
+For instructions on how to do so for your setup, follow the instructions [here](https://frankaemika.github.io/docs/getting_started.html).
 
 We use the polymetis environment wrapper to work with our Franka robot, with the instructions to download found [here](https://facebookresearch.github.io/fairo/polymetis/). We thank the authors for nice codebase / wrapper to work with!
 
@@ -37,37 +40,29 @@ on the NUC. Note, this requires a local installation of polymetis.
 tmux new-session
 sudo pkill -9 run_server
 conda activate polymetis-local
-launch_robot.py robot_client=franka_hardware robot_client.executable_cfg.robot_ip=172.16.0.2
-```
-
-If doing an overnight run, start a persistent server:
-```
-tmux new-session
-sudo pkill -9 run_server
-conda activate polymetis-local
 bash ~/fairo/polymetis/polymetis/python/scripts/persist_server.sh
 ```
 
 ### Step 2: Start the gripper.
 Then, create [a new window in tmux](https://tmuxcheatsheet.com/)
 and activate the gripper. The terminal should prompt that the 
-robotiq gripper is activated. If you get an error, try again :)
+robotiq gripper is activated. If you get an error, try once more and that should work.
 ```
 sudo chmod a+rw /dev/ttyUSB0
 conda activate polymetis-local
 launch_gripper.py gripper=robotiq_2f gripper.comport=/dev/ttyUSB0
 ```
 
-### (Required for training) Step 3: Start the flask server.
+### Step 3: Start the flask server.
 Create a new window and run the flask server, which communicates between
-the nuc / workstation. NOTE: this is needed only if you're training the models on a separate machine (for example, workstation).
+the nuc / workstation.
 ```
 conda activate polymetis-local
 python ~/iris_robots/run_server.py
 ```
 
 # Demo Collection
-For demo collection, we utilize an Xbox One controller which is directly plugged into the NUC controller computer.
+All instructions onwards assume you have activated the ```polymetis-local``` conda env. For demo collection, we utilize an Xbox One controller which is directly plugged into the NUC controller computer.
 You can find one [here](https://support.xbox.com/en-US/help/hardware-network/controller/xbox-one-wireless-controller). If you would like to get a sense of the commands, try running 
 ```
 python free_xbox_control.py
