@@ -14,8 +14,8 @@ import os
 
 class FrankaRobot:
     def __init__(self, control_hz=20):
-        self._robot = RobotInterface(ip_address="localhost")
-        self._gripper = GripperInterface(ip_address="localhost")
+        self._robot = RobotInterface(ip_address="172.16.0.1")
+        self._gripper = GripperInterface(ip_address="172.16.0.1")
         self._ik_solver = RobotIKSolver(self._robot, control_hz=control_hz)
         self._controller_restart = 0
 

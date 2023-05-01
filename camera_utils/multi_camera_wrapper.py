@@ -12,11 +12,11 @@ class MultiCameraWrapper:
 			self._all_cameras.extend(specific_cameras)
 		
 		# Hard Code indices to separate wrist
-		# from 3P camera
-		cam_fp = CV2Camera(cv2.VideoCapture(0))
-		cam_tp = CV2Camera(cv2.VideoCapture(2))
+		# # from 3P camera
+		# cam_fp = CV2Camera(cv2.VideoCapture(0))
+		# cam_tp = CV2Camera(cv2.VideoCapture(2))
 
-		self._all_cameras.extend([cam_fp, cam_tp])
+		# self._all_cameras.extend([cam_fp, cam_tp])
 		if use_threads:
 			for i in range(len(self._all_cameras)):
 				self._all_cameras[i] = CameraThread(self._all_cameras[i])

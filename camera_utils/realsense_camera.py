@@ -51,15 +51,15 @@ class RealSenseCamera:
 		# if depth_colormap_dim != color_colormap_dim and enforce_same_dim:
 		# 	color_image = cv2.resize(color_image, dsize=(depth_colormap_dim[1], depth_colormap_dim[0]), interpolation=cv2.INTER_AREA)
 
-		color_image = cv2.resize(color_image, dsize=(128, 96), interpolation=cv2.INTER_AREA)
-		depth_colormap = cv2.resize(depth_colormap, dsize=(128, 96), interpolation=cv2.INTER_AREA)
+		# color_image = cv2.resize(color_image, dsize=(128, 96), interpolation=cv2.INTER_AREA)
+		# depth_colormap = cv2.resize(depth_colormap, dsize=(128, 96), interpolation=cv2.INTER_AREA)
 
 		color_image = cv2.cvtColor(color_image, cv2.COLOR_BGR2RGB)
 		depth_colormap = cv2.cvtColor(depth_colormap, cv2.COLOR_BGR2RGB)
 
 		dict_1 = {'array': color_image, 'shape': color_image.shape, 'type': 'rgb',
 			'read_time': read_time, 'serial_number': self._serial_number + '/rgb'}
-		dict_2 = {'array': depth_colormap, 'shape': color_image.shape, 'type': 'depth',
+		dict_2 = {'array': depth_colormap, 'depth_image': depth_image, 'shape': color_image.shape, 'type': 'depth',
 			'read_time': read_time, 'serial_number': self._serial_number + '/depth'}
 		
 		return [dict_1, dict_2]
