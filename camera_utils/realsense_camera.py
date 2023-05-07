@@ -5,6 +5,12 @@ import cv2
 
 def gather_realsense_cameras():
 	context = rs.context()
+	
+	# # https://github.com/IntelRealSense/librealsense/issues/6628#issuecomment-646558144
+	# devices = context.query_devices()
+	# for dev in devices:
+	# 	dev.hardware_reset()
+
 	all_devices = list(context.devices)
 	all_rs_cameras = []
 
@@ -28,11 +34,21 @@ class RealSenseCamera:
 		if device_product_line == 'L500': config.enable_stream(rs.stream.color, 960, 540, rs.format.bgr8, 30)
 		else: config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
 
-		self._pipeline.start(config)
+		self.align = rs.align(rs.stream.depth)
+
+		cfg = self._pipeline.start(config)
+		self.intr = cfg.get_stream(rs.stream.depth).as_video_stream_profile().get_intrinsics()
 
 	def read_camera(self, enforce_same_dim=False):
 		# Wait for a coherent pair of frames: depth and color
 		frames = self._pipeline.wait_for_frames()
+
+		color_frame_unaligned = frames.get_color_frame()
+		color_image_unaligned = np.asanyarray(color_frame_unaligned.get_data())
+		color_image_unaligned = cv2.cvtColor(color_image_unaligned, cv2.COLOR_BGR2RGB)
+
+		frames = self.align.process(frames)
+
 		depth_frame = frames.get_depth_frame()
 		color_frame = frames.get_color_frame()
 		if not depth_frame or not color_frame: return None
@@ -57,7 +73,7 @@ class RealSenseCamera:
 		color_image = cv2.cvtColor(color_image, cv2.COLOR_BGR2RGB)
 		depth_colormap = cv2.cvtColor(depth_colormap, cv2.COLOR_BGR2RGB)
 
-		dict_1 = {'array': color_image, 'shape': color_image.shape, 'type': 'rgb',
+		dict_1 = {'array': color_image, 'color_image': color_image_unaligned, 'shape': color_image.shape, 'type': 'rgb',
 			'read_time': read_time, 'serial_number': self._serial_number + '/rgb'}
 		dict_2 = {'array': depth_colormap, 'depth_image': depth_image, 'shape': color_image.shape, 'type': 'depth',
 			'read_time': read_time, 'serial_number': self._serial_number + '/depth'}

@@ -29,6 +29,29 @@ class FrankaRobot:
         self._robot_process.terminate()
         self._gripper_process.terminate()
 
+    def update_pose_quat(self, pos, quat):
+        '''Expect [x,y,z], [yaw, pitch, roll]'''
+
+        desired_pos = torch.Tensor(pos)
+        desired_quat = torch.Tensor(quat)
+
+        desired_qpos, _ = self._ik_solver.compute(desired_pos, desired_quat)
+        feasible_pos, feasible_quat = self._robot.robot_model.forward_kinematics(desired_qpos)
+        feasible_pos, feasible_angle = feasible_pos.numpy(), quat_to_euler(feasible_quat.numpy())
+
+        if not self._robot.is_running_policy():
+            self._robot.start_cartesian_impedance()
+
+        try: self._robot.update_desired_joint_positions(desired_qpos)
+        except:
+            print('impedance controller failed, restarting and skipping this step')
+            self._controller_restart += 1
+            print(f'controller reset tracker: {self._controller_restart}\n')
+            self._robot.start_cartesian_impedance()
+            # self._robot.update_desired_joint_positions(desired_qpos)
+
+        return feasible_pos, feasible_angle
+    
     def update_pose(self, pos, angle):
         '''Expect [x,y,z], [yaw, pitch, roll]'''
 
@@ -93,3 +116,8 @@ class FrankaRobot:
         pos, quat = self._robot.get_ee_pose()
         angle = quat_to_euler(quat.numpy())
         return angle
+    
+    def get_ee_quat(self):
+        '''Returns [yaw, pitch, roll]'''
+        pos, quat = self._robot.get_ee_pose()        
+        return quat.numpy()

@@ -7,7 +7,8 @@ Experiment Specific Functions: self.get_info(), self.get_reward(), self.get_obse
 import numpy as np
 import time
 import gym
-
+import open3d as o3d
+import cv2
 from transformations import add_angles, angle_diff
 from camera_utils.multi_camera_wrapper import MultiCameraWrapper
 from server.robot_interface import RobotInterface
@@ -62,6 +63,8 @@ class RobotEnv(gym.Env):
             self._goal_state = [1, -1, 1, 1]
         elif goal_state == 'right_closed':
             self._goal_state = [1, 1, 1, -1]
+        elif goal_state == 'red_sphere':
+            self._goal_state = [0.54667562, -0.21923018, 0.16995791, 0.08017046]
 
         # resetting configuration
         self._peg_insert = True
@@ -94,7 +97,7 @@ class RobotEnv(gym.Env):
                 np.array([0.73, 0.28, 0.35, 0.0, 0.085]),
             )
 
-        # joint limits + gripper
+        # joint limits + gripperspecific_cameras
         self._jointmin = np.array([-2.8973, -1.7628, -2.8973, -3.0718, -2.8973, -0.0175, -2.8973, 0.0045], dtype=np.float32)
         self._jointmax = np.array([2.8973, 1.7628, 2.8973, -0.0698, 2.8973, 3.7525, 2.8973, 0.085], dtype=np.float32)
         # joint space + gripper
@@ -172,7 +175,10 @@ class RobotEnv(gym.Env):
         done = False
         if self._max_path_length is not None and self._curr_path_length >= self._max_path_length:
             done = True
-        return obs, reward, done, {}
+        return obs, reward, done, {'rgb': obs['hand_img_obs'], 
+                                   'rgb_aligned': obs['hand_img_obs_aligned'], 
+                                   'depth': obs['third_person_img_obs'], 
+                                   'lowdim_ee': self.unnormalize_ee_obs(obs['lowdim_ee'])}
 
     def normalize_ee_obs(self, obs):
         """Normalizes low-dim obs between [-1,1]."""
@@ -466,9 +472,12 @@ class RobotEnv(gym.Env):
         current_images = self.get_images()
 
         # set images
-        obs_first = current_images[0]['array']
+        obs_first = current_images[0]['color_image']
         obs_third = current_images[1]['depth_image']
 
+        # set images
+        aligned_obs_first = current_images[0]['array']
+        
         # set gripper width
         gripper_width = current_state['current_pose'][-1:]
         # compute and normalize ee/qpos state
@@ -480,9 +489,15 @@ class RobotEnv(gym.Env):
         normalized_ee_pos = self.normalize_ee_obs(ee_pos)
         normalized_qpos = self.normalize_qpos(qpos)
 
+        color_image_small = cv2.resize(obs_first, dsize=(128, 96), interpolation=cv2.INTER_AREA)
+        depth_colormap_small = cv2.resize(obs_third, dsize=(128, 96), interpolation=cv2.INTER_AREA)
+
         obs_dict = {
             'hand_img_obs': obs_first,
+            'hand_img_obs_aligned': aligned_obs_first,
             'third_person_img_obs': obs_third,
+            'hand_img_obs_small': color_image_small,
+            'third_person_img_obs_small': depth_colormap_small,
             'lowdim_ee': normalized_ee_pos,
             'lowdim_qpos': normalized_qpos,
         }
@@ -542,7 +557,7 @@ class RobotEnv(gym.Env):
         """
         return self.cam_ext_mat
 
-    def get_cam_int(self):
+    def get_cam_int(self, camera_id):
         """
         Return the camera's intrinsic matrix.
 
@@ -550,33 +565,28 @@ class RobotEnv(gym.Env):
             np.ndarray: intrinsic matrix (shape: :math:`[3, 3]`)
             for the camera.
         """
-        return self.cam_int_mat
+        # TODO: Make this general
+        # intr = self._camera_reader._all_cameras[camera_id]._camera.intr
+        # cam_int_mat =  np.array([[intr.fx, 0., intr.ppx],
+        #                                 [0., intr.fy, intr.ppy],
+        #                                 [0., 0.,  1.]])
+        cam_int_mat = np.array([[391.59536743,   0.        , 321.44470215],
+                            [  0.        , 391.59536743, 239.72434998],
+                            [  0.        ,   0.        ,   1.        ]])
 
-    # def set_cam_ext(self, pos=None, ori=None, cam_ext=None):
-    #     """
-    #     Set the camera extrinsic matrix.
+        return cam_int_mat
+    
+    def set_int_matrix(self, fx, fy, ppx, ppy, coeff=None):
+        # consider handle distortion here
+        self.cam_int_mat =  np.array([[fx, 0., ppx],
+                                        [0., fy, ppy],
+                                        [0., 0.,  1.]])
 
-    #     Args:
-    #         pos (np.ndarray): position of the camera (shape: :math:`[3,]`).
-    #         ori (np.ndarray): orientation.
-    #             It can be rotation matrix (shape: :math:`[3, 3]`)
-    #             quaternion ([x, y, z, w], shape: :math:`[4]`), or
-    #             euler angles ([roll, pitch, yaw], shape: :math:`[3]`).
-    #         cam_ext (np.ndarray): extrinsic matrix (shape: :math:`[4, 4]`).
-    #             If this is provided, pos and ori will be ignored.
-    #     """
-    #     if cam_ext is not None:
-    #         self.cam_ext_mat = cam_ext
-    #     else:
-    #         if pos is None or ori is None:
-    #             raise ValueError('If cam_ext is not provided, '
-    #                              'both pos and ori need '
-    #                              'to be provided.')
-    #         ori = to_rot_mat(ori)
-    #         cam_mat = np.eye(4)
-    #         cam_mat[:3, :3] = ori
-    #         cam_mat[:3, 3] = pos.flatten()
-    #         self.cam_ext_mat = cam_mat
+    def set_ext_matrix(self, ori_mat, pos):
+        cam_mat = np.eye(4)
+        cam_mat[:3, :3] = ori_mat
+        cam_mat[:3, 3] = pos.flatten()        
+        self.cam_ext_mat = cam_mat
 
     def get_pix_3dpt(self, rs, cs, in_world=True, filter_depth=False,
                      k=1, ktype='median', depth_min=None, depth_max=None,
@@ -691,88 +701,158 @@ class RobotEnv(gym.Env):
         else:
             return pts_in_cam.T
 
-    def get_pcd(self, in_world=True, filter_depth=True,
-                depth_min=None, depth_max=None, cam_ext_mat=None,
-                rgb_image=None, depth_image=None):
+    # def get_pcd(self, in_world=True, filter_depth=True,
+    #             depth_min=None, depth_max=None, cam_ext_mat=None,
+    #             rgb_image=None, depth_image=None):
+    #     """
+    #     Get the point cloud from the entire depth image
+    #     in the camera frame or in the world frame.
+
+    #     Args:
+    #         in_world (bool): return point cloud in the world frame, otherwise,
+    #             return point cloud in the camera frame.
+    #         filter_depth (bool): only return the point cloud with depth values
+    #             lying in [depth_min, depth_max].
+    #         depth_min (float): minimum depth value. If None, it will use the
+    #             default minimum depth value defined in the config file.
+    #         depth_max (float): maximum depth value. If None, it will use the
+    #             default maximum depth value defined in the config file.
+    #         cam_ext_mat (np.ndarray): camera extrinsic matrix (shape: :math:`[4,4]`).
+    #             If provided, it will be used to compute the points in the world frame.
+    #         rgb_image (np.ndarray): externally captured RGB image, if we want to
+    #             convert a depth image captured outside this function to a point cloud.
+    #             (shape :math:`[H, W, 3]`)
+    #         depth_image (np.ndarray): externally captured depth image, if we want to
+    #             convert a depth image captured outside this function to a point cloud.
+    #             (shape :math:`[H, W]`)
+
+    #     Returns:
+    #         2-element tuple containing
+
+    #         - np.ndarray: point coordinates (shape: :math:`[N, 3]`).
+    #         - np.ndarray: rgb values (shape: :math:`[N, 3]`).
+    #     """
+    #     if depth_image iget_pcds None or rgb_image is None:
+    #         # rgb_im, depth_im = self.get_images()
+    #         images = self.get_images()
+    #         rgb_im, depth_im = images[0]["array"], images[1]["array"]
+    #     else:
+    #         rgb_im = rgb_image
+    #         depth_im = depth_image
+    #     # pcd in camera from depth
+    #     depth = depth_im.reshape(-1) * self.depth_scale
+    #     rgb = None
+    #     if rgb_im is not None:
+    #         rgb = rgb_im.reshape(-1, 3)
+    #     depth_min = depth_min if depth_min else self.depth_min
+    #     depth_max = depth_max if depth_max else self.depth_max
+    #     if filter_depth:
+    #         valid = depth > depth_min
+    #         valid = np.logical_and(valid,
+    #                                depth < depth_max)
+    #         depth = depth[valid]
+    #         if rgb is not None:
+    #             rgb = rgb[valid]
+    #         uv_one_in_cam = self._uv_one_in_cam[:, valid]
+    #     else:
+    #         uv_one_in_cam = self._uv_one_in_cam
+    #     pts_in_cam = np.multiply(uv_one_in_cam, depth)
+    #     if not in_world:
+    #         pcd_pts = pts_in_cam.T
+    #         pcd_rgb = rgb
+    #         return pcd_pts, pcd_rgb
+    #     else:
+    #         if self.cam_ext_mat is None and cam_ext_mat is None:
+    #             raise ValueError('Please call set_cam_ext() first to set up'
+    #                              ' the camera extrinsic matrix')
+    #         cam_ext_mat = self.cam_ext_mat if cam_ext_mat is None else cam_ext_mat
+    #         pts_in_cam = np.concatenate((pts_in_cam,
+    #                                      np.ones((1, pts_in_cam.shape[1]))),
+    #                                     axis=0)
+    #         pts_in_world = np.dot(cam_ext_mat, pts_in_cam)
+    #         pcd_pts = pts_in_world[:3, :].T
+    #         pcd_rgb = rgb
+    #         return pcd_pts, pcd_rgb
+    
+    def get_pcd(self, camera_id, depth_scale=1., depth_max=np.inf, return_numpy=True):
         """
-        Get the point cloud from the entire depth image
-        in the camera frame or in the world frame.
+        Read images from camera and convert to open3d / numpy pointcloud
 
-        Args:
-            in_world (bool): return point cloud in the world frame, otherwise,
-                return point cloud in the camera frame.
-            filter_depth (bool): only return the point cloud with depth values
-                lying in [depth_min, depth_max].
-            depth_min (float): minimum depth value. If None, it will use the
-                default minimum depth value defined in the config file.
-            depth_max (float): maximum depth value. If None, it will use the
-                default maximum depth value defined in the config file.
-            cam_ext_mat (np.ndarray): camera extrinsic matrix (shape: :math:`[4,4]`).
-                If provided, it will be used to compute the points in the world frame.
-            rgb_image (np.ndarray): externally captured RGB image, if we want to
-                convert a depth image captured outside this function to a point cloud.
-                (shape :math:`[H, W, 3]`)
-            depth_image (np.ndarray): externally captured depth image, if we want to
-                convert a depth image captured outside this function to a point cloud.
-                (shape :math:`[H, W]`)
-
-        Returns:
-            2-element tuple containing
-
-            - np.ndarray: point coordinates (shape: :math:`[N, 3]`).
-            - np.ndarray: rgb values (shape: :math:`[N, 3]`).
+        Args
+            int: depth_max: maximum depth value to threshold pointcloud
+            bool: return_numpy: whether to return pointcloud as np.ndarray or open3D pointcloud
+        Returns
+            np.ndarray: points
+            OR
+            o3d.geometry.PointCloud
         """
-        if depth_image is None or rgb_image is None:
-            rgb_im, depth_im = self.get_images(get_rgb=True, get_depth=True)
-        else:
-            rgb_im = rgb_image
-            depth_im = depth_image
-        # pcd in camera from depth
-        depth = depth_im.reshape(-1) * self.depth_scale
-        rgb = None
-        if rgb_im is not None:
-            rgb = rgb_im.reshape(-1, 3)
-        depth_min = depth_min if depth_min else self.depth_min
-        depth_max = depth_max if depth_max else self.depth_max
-        if filter_depth:
-            valid = depth > depth_min
-            valid = np.logical_and(valid,
-                                   depth < depth_max)
-            depth = depth[valid]
-            if rgb is not None:
-                rgb = rgb[valid]
-            uv_one_in_cam = self._uv_one_in_cam[:, valid]
-        else:
-            uv_one_in_cam = self._uv_one_in_cam
-        pts_in_cam = np.multiply(uv_one_in_cam, depth)
-        if not in_world:
-            pcd_pts = pts_in_cam.T
-            pcd_rgb = rgb
-            return pcd_pts, pcd_rgb
-        else:
-            if self.cam_ext_mat is None and cam_ext_mat is None:
-                raise ValueError('Please call set_cam_ext() first to set up'
-                                 ' the camera extrinsic matrix')
-            cam_ext_mat = self.cam_ext_mat if cam_ext_mat is None else cam_ext_mat
-            pts_in_cam = np.concatenate((pts_in_cam,
-                                         np.ones((1, pts_in_cam.shape[1]))),
-                                        axis=0)
-            pts_in_world = np.dot(cam_ext_mat, pts_in_cam)
-            pcd_pts = pts_in_world[:3, :].T
-            pcd_rgb = rgb
-            return pcd_pts, pcd_rgb
+        imgs = self.get_images()
 
-    # def get_images(self):
-    #     pass
+        rgb_raw = imgs[0]["array"]
+        # # use unscaled depth
+        d_raw = imgs[1]["depth_image"]
+        # import pickle
+        # rgb_raw = pickle.load(open('/home/siri/Projects/minimal-rl/test_img_rgb_calib.pkl', 'rb'))
+        # d_raw = pickle.load(open('/home/siri/Projects/minimal-rl/test_img_depth_calib.pkl', 'rb'))
+        rgb = o3d.geometry.Image(rgb_raw)
+        d = o3d.geometry.Image(d_raw)
+        rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(rgb, d, depth_scale=depth_scale, depth_trunc=depth_max, convert_rgb_to_intensity=False)
 
-    def set_int_matrix(self, fx, fy, ppx, ppy, coeff=None):
-        # consider handle distortion here
-        self.cam_int_mat =  np.array([[fx, 0., ppx],
-                                        [0., fy, ppy],
-                                        [0., 0.,  1.]])
+        height = np.asarray(rgb).shape[0]
+        width = np.asarray(rgb).shape[1]
 
-    def set_ext_matrix(self, ori_mat, pos):
-        cam_mat = np.eye(4)
-        cam_mat[:3, :3] = ori_mat
-        cam_mat[:3, 3] = pos.flatten()
-        self.cam_ext_mat = cam_mat
+        cam_int = self.get_cam_int(camera_id)
+        cam_ext = self.get_cam_ext()
+
+        import IPython
+        IPython.embed()
+        
+        intrinsics = o3d.camera.PinholeCameraIntrinsic(width, height, cam_int[0,0], cam_int[1,1], cam_int[0,2], cam_int[1,2])
+        pcd = o3d.geometry.PointCloud.create_from_rgbd_image(rgbd, intrinsic=intrinsics, extrinsic=np.linalg.inv(cam_ext))
+
+        if return_numpy:
+            return np.asarray(pcd.points)
+        else:
+            return pcd
+        
+    # env.visualize_rgb_pc(rgb=obs['hand_img_obs'], depth=obs['third_person_img_obs'],
+    #                      intrinsics=env.cam_int_mat, extrinsics=env.cam_ext_mat, animation=True)
+    def visualize_rgb_pc(self, rgb, depth, fx, fy, ppx, ppy, intrinsics, extrinsics, animation=True):
+        height, width = depth.shape
+        xlin = np.linspace(0, width - 1, width)
+        ylin = np.linspace(0, height - 1, height)
+        px, py = np.meshgrid(xlin, ylin)
+        px = (px - intrinsics[0, 2]) * (depth / intrinsics[0, 0])
+        py = (py - intrinsics[1, 2]) * (depth / intrinsics[1, 1])
+        points = np.float32([px, py, depth]).transpose(1, 2, 0)
+        padding = ((0, 0), (0, 0), (0, 1))
+        homogen_points = np.pad(points.copy(), padding,
+                                'constant', constant_values=1)
+        for i in range(3):
+            points[Ellipsis, i] = np.sum(extrinsics[i, :] * homogen_points, axis=-1)
+
+        pcd = o3d.geometry.PointCloud()
+        pts = np.array(points).reshape(-1, 3)
+        clr = np.array(rgb).reshape(-1, 3) / 255
+        pcd.points = o3d.utility.Vector3dVector(pts)
+        pcd.colors = o3d.utility.Vector3dVector(clr)
+        o3d.visualization.draw_geometries([pcd],
+                                            # zoom=0.3412,
+                                            # front=[0.4257, -0.2125, -0.8795],
+                                            # lookat=[2.6172, 2.0475, 1.532],
+                                            # up=[-0.0694, -0.9768, 0.2024])
+        )
+        return (points, rgb/255.)
+    
+    def visualize_pcd(self, pcd):
+        """
+        Visualizes an open3D pointcloud in an interative window.
+        """
+        o3d.open3d.visualization.draw_geometries([pcd])
+
+    def moveToJointPosition(self, joint_config):
+        self._robot.update_joints(np.asarray(joint_config))
+        
+    def goHome(self):
+        home_config = [0.0, -np.pi/4, 0.0, -2*np.pi/3, 0.0, np.pi/3, np.pi/4]
+        self.moveToJointPosition(home_config)
